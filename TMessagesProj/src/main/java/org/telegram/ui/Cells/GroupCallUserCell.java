@@ -76,7 +76,7 @@ public class GroupCallUserCell extends FrameLayout {
     private AvatarDrawable avatarDrawable;
 
     private ChatObject.Call currentCall;
-    private TLRPC.GroupCallParticipant participant;
+    private TLRPC.TL_groupCallParticipant participant;
     private TLRPC.User currentUser;
     private TLRPC.Chat currentChat;
 
@@ -463,7 +463,7 @@ public class GroupCallUserCell extends FrameLayout {
         return avatarImageView.getImageReceiver().hasNotThumb();
     }
 
-    public void setData(AccountInstance account, TLRPC.GroupCallParticipant groupCallParticipant, ChatObject.Call call, long self, TLRPC.FileLocation uploadingAvatar, boolean animated) {
+    public void setData(AccountInstance account, TLRPC.TL_groupCallParticipant groupCallParticipant, ChatObject.Call call, long self, TLRPC.FileLocation uploadingAvatar, boolean animated) {
         currentCall = call;
         accountInstance = account;
         selfId = self;
@@ -565,7 +565,7 @@ public class GroupCallUserCell extends FrameLayout {
         }
     }
 
-    public TLRPC.GroupCallParticipant getParticipant() {
+    public TLRPC.TL_groupCallParticipant getParticipant() {
         return participant;
     }
 
@@ -672,7 +672,7 @@ public class GroupCallUserCell extends FrameLayout {
             }
         }
 
-        TLRPC.GroupCallParticipant newParticipant = currentCall.participants.get(MessageObject.getPeerId(participant.peer));
+        TLRPC.TL_groupCallParticipant newParticipant = currentCall.participants.get(MessageObject.getPeerId(participant.peer));
         if (newParticipant != null) {
             participant = newParticipant;
         }
@@ -924,14 +924,12 @@ public class GroupCallUserCell extends FrameLayout {
     @Override
     protected void dispatchDraw(Canvas canvas) {
         if (needDivider) {
-            int wasAlpha = dividerPaint.getAlpha();
             if (progressToAvatarPreview != 0) {
-                dividerPaint.setAlpha((int) ((1.0f - progressToAvatarPreview) * wasAlpha));
+                dividerPaint.setAlpha((int) ((1.0f - progressToAvatarPreview) * 255));
             } else {
-                dividerPaint.setAlpha((int) ((1.0f - statusTextView[4].getFullAlpha()) * wasAlpha));
+                dividerPaint.setAlpha((int) ((1.0f - statusTextView[4].getFullAlpha()) * 255));
             }
             canvas.drawLine(LocaleController.isRTL ? 0 : AndroidUtilities.dp(68), getMeasuredHeight() - 1, getMeasuredWidth() - (LocaleController.isRTL ? AndroidUtilities.dp(68) : 0), getMeasuredHeight() - 1, dividerPaint);
-            dividerPaint.setAlpha(wasAlpha);
         }
         int cx = avatarImageView.getLeft() + avatarImageView.getMeasuredWidth() / 2;
         int cy = avatarImageView.getTop() + avatarImageView.getMeasuredHeight() / 2;

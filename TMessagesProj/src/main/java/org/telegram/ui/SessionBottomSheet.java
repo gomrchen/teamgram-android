@@ -1,7 +1,5 @@
 package org.telegram.ui;
 
-import static org.telegram.messenger.AndroidUtilities.dp;
-
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Canvas;
@@ -53,7 +51,6 @@ public class SessionBottomSheet extends BottomSheet {
 
         LinearLayout linearLayout = new LinearLayout(context);
         linearLayout.setOrientation(LinearLayout.VERTICAL);
-        linearLayout.setPadding(dp(4), 0, dp(4), 0);
 
         imageView = new RLottieImageView(context);
         imageView.setOnClickListener(new View.OnClickListener() {
@@ -209,40 +206,38 @@ public class SessionBottomSheet extends BottomSheet {
             prevItem = acceptSecretChats;
         }
 
-        if (acceptCallsEnabled(session)) {
-            ItemView acceptCalls = new ItemView(context, true);
-            acceptCalls.valueText.setText(LocaleController.getString(R.string.AcceptCalls));
-            drawable = ContextCompat.getDrawable(context, R.drawable.msg_calls).mutate();
-            drawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), PorterDuff.Mode.SRC_IN));
-            acceptCalls.iconView.setImageDrawable(drawable);
-            acceptCalls.switchView.setChecked(!session.call_requests_disabled, false);
-            acceptCalls.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 7));
-            acceptCalls.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    acceptCalls.switchView.setChecked(!acceptCalls.switchView.isChecked(), true);
-                    session.call_requests_disabled = !acceptCalls.switchView.isChecked();
-                    uploadSessionSettings();
-                }
-            });
-            if (prevItem != null) {
-                prevItem.needDivider = true;
+        ItemView acceptCalls = new ItemView(context, true);
+        acceptCalls.valueText.setText(LocaleController.getString(R.string.AcceptCalls));
+        drawable = ContextCompat.getDrawable(context, R.drawable.msg_calls).mutate();
+        drawable.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon), PorterDuff.Mode.SRC_IN));
+        acceptCalls.iconView.setImageDrawable(drawable);
+        acceptCalls.switchView.setChecked(!session.call_requests_disabled, false);
+        acceptCalls.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector), 7));
+        acceptCalls.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                acceptCalls.switchView.setChecked(!acceptCalls.switchView.isChecked(), true);
+                session.call_requests_disabled = !acceptCalls.switchView.isChecked();
+                uploadSessionSettings();
             }
+        });
 
-            acceptCalls.descriptionText.setText(LocaleController.getString(R.string.AcceptCallsChatsDescription));
-            linearLayout.addView(acceptCalls);
+        if (prevItem != null) {
+            prevItem.needDivider = true;
         }
+        acceptCalls.descriptionText.setText(LocaleController.getString(R.string.AcceptCallsChatsDescription));
+        linearLayout.addView(acceptCalls);
 
         if (!isCurrentSession) {
             TextView buttonTextView = new TextView(context);
-            buttonTextView.setPadding(dp(34), 0, dp(34), 0);
+            buttonTextView.setPadding(AndroidUtilities.dp(34), 0, AndroidUtilities.dp(34), 0);
             buttonTextView.setGravity(Gravity.CENTER);
             buttonTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
             buttonTextView.setTypeface(AndroidUtilities.bold());
             buttonTextView.setText(LocaleController.getString(R.string.TerminateSession));
 
             buttonTextView.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
-            buttonTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(24), Theme.getColor(Theme.key_chat_attachAudioBackground), ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhite), 120)));
+            buttonTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(AndroidUtilities.dp(6), Theme.getColor(Theme.key_chat_attachAudioBackground), ColorUtils.setAlphaComponent(Theme.getColor(Theme.key_windowBackgroundWhite), 120)));
 
             linearLayout.addView(buttonTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, 0, 16, 15, 16, 16));
 
@@ -276,12 +271,11 @@ public class SessionBottomSheet extends BottomSheet {
         setCustomView(scrollView);
     }
 
-    private boolean acceptCallsEnabled(TLRPC.TL_authorization session) {
-        return session.api_id != 22;
-    }
-
     private boolean secretChatsEnabled(TLRPC.TL_authorization session) {
-        return session.api_id != 2040 && session.api_id != 2496;
+        if (session.api_id == 2040 || session.api_id == 2496) {
+            return false;
+        }
+        return true;
     }
 
     private void uploadSessionSettings() {
@@ -381,7 +375,7 @@ public class SessionBottomSheet extends BottomSheet {
             }
         }
 
-        imageView.setBackground(Theme.createCircleDrawable(dp(42), Theme.getColor(colorKey)));
+        imageView.setBackground(Theme.createCircleDrawable(AndroidUtilities.dp(42), Theme.getColor(colorKey)));
 //        imageView.setBackground(new SessionCell.CircleGradientDrawable(AndroidUtilities.dp(42), Theme.getColor(colorKey), Theme.getColor(colorKey2)));
         if (animation) {
             int[] colors = new int[]{0x000000, Theme.getColor(colorKey)};
@@ -420,7 +414,7 @@ public class SessionBottomSheet extends BottomSheet {
             descriptionText.setGravity(Gravity.LEFT);
             descriptionText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
             linearLayout.addView(descriptionText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0, 0, 4, needSwitch ? 64 : 0, 0));
-            setPadding(0, dp(4), 0, dp(4));
+            setPadding(0, AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4));
 
             if (needSwitch) {
                 switchView = new Switch(context);
@@ -433,7 +427,7 @@ public class SessionBottomSheet extends BottomSheet {
         protected void dispatchDraw(Canvas canvas) {
             super.dispatchDraw(canvas);
             if (needDivider) {
-                canvas.drawRect(dp(64), getMeasuredHeight() - 1, getMeasuredWidth(), getMeasuredHeight(), Theme.dividerPaint);
+                canvas.drawRect(AndroidUtilities.dp(64), getMeasuredHeight() - 1, getMeasuredWidth(), getMeasuredHeight(), Theme.dividerPaint);
             }
         }
 

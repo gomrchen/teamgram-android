@@ -37,7 +37,6 @@ public class BusinessBotButton extends FrameLayout {
 
     private final AvatarDrawable avatarDrawable;
     private final BackupImageView avatarView;
-    private final LinearLayout textLayout;
     private final AnimatedTextView titleView;
     private final AnimatedTextView subtitleView;
     private final ClickableAnimatedTextView pauseButton;
@@ -63,7 +62,7 @@ public class BusinessBotButton extends FrameLayout {
         avatarView.setForUserOrChat(user, avatarDrawable);
         addView(avatarView, LayoutHelper.createFrame(32, 32, Gravity.CENTER_VERTICAL | Gravity.LEFT, 10, 0, 10, 0));
 
-        textLayout = new LinearLayout(context);
+        LinearLayout textLayout = new LinearLayout(context);
         textLayout.setOrientation(LinearLayout.VERTICAL);
 
         titleView = new AnimatedTextView(context);
@@ -81,7 +80,7 @@ public class BusinessBotButton extends FrameLayout {
         subtitleView.getDrawable().setHacks(true, true, false);
         subtitleView.setTextSize(dp(13));
         subtitleView.setText(LocaleController.getString(R.string.BizBotStatusManages));
-        subtitleView.setTextColor(Theme.getColor(Theme.key_chat_topPanelMessage, resourcesProvider));
+        subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, resourcesProvider));
         subtitleView.setEllipsizeByGradient(true);
         textLayout.addView(subtitleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 17));
 
@@ -116,16 +115,22 @@ public class BusinessBotButton extends FrameLayout {
             req.peer = MessagesController.getInstance(currentAccount).getInputPeer(dialogId);
             req.paused = paused;
             ConnectionsManager.getInstance(currentAccount).sendRequest(req, null);
+
+
         });
-        pauseButton.setOnWidthUpdatedListener(this::updateTextRightPadding);
+        pauseButton.setOnWidthUpdatedListener(() -> {
+            float padding = pauseButton.getPaddingLeft() + pauseButton.getDrawable().getCurrentWidth() + pauseButton.getPaddingRight() + dp(12);
+            titleView.setRightPadding(padding);
+            subtitleView.setRightPadding(padding);
+        });
         pauseButton.setText(LocaleController.getString(paused ? R.string.BizBotStart : R.string.BizBotStop));
-        addView(pauseButton, LayoutHelper.createFrame(64, 28, Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 0, 46, 0));
+        addView(pauseButton, LayoutHelper.createFrame(64, 28, Gravity.CENTER_VERTICAL | Gravity.RIGHT, 0, 0, 49, 0));
 
         menuView = new ImageView(context);
         menuView.setScaleType(ImageView.ScaleType.CENTER);
         menuView.setImageResource(R.drawable.msg_mini_customize);
-        menuView.setBackground(Theme.createCircleSelectorDrawable(Theme.getColor(Theme.key_listSelector, resourcesProvider), 0, 0));
-        menuView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_chat_topPanelClose, resourcesProvider), PorterDuff.Mode.MULTIPLY));
+        menuView.setBackground(Theme.createSelectorDrawable(Theme.getColor(Theme.key_listSelector, resourcesProvider), Theme.RIPPLE_MASK_ROUNDRECT_6DP));
+        menuView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText3, resourcesProvider), PorterDuff.Mode.MULTIPLY));
         menuView.setOnClickListener(e -> {
             ItemOptions itemOptions = ItemOptions.makeOptions(chatActivity.getLayoutContainer(), resourcesProvider, menuView);
             itemOptions.add(R.drawable.msg_cancel, LocaleController.getString(R.string.BizBotRemove), true, () -> {
@@ -150,21 +155,7 @@ public class BusinessBotButton extends FrameLayout {
             itemOptions.setDimAlpha(0);
             itemOptions.show();
         });
-        addView(menuView, LayoutHelper.createFrame(32, 32, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 8, 0, 6, 0));
-    }
-
-    private float leftMargin;
-    public void setLeftMargin(float leftMargin) {
-        this.leftMargin = leftMargin;
-        avatarView.setTranslationX(leftMargin);
-        textLayout.setTranslationX(leftMargin);
-        updateTextRightPadding();
-    }
-
-    private void updateTextRightPadding() {
-        final float padding = this.leftMargin + pauseButton.getPaddingLeft() + pauseButton.getDrawable().getCurrentWidth() + pauseButton.getPaddingRight() + dp(12);
-        titleView.setRightPadding(padding);
-        subtitleView.setRightPadding(padding);
+        addView(menuView, LayoutHelper.createFrame(32, 32, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 8, 0, 9, 0));
     }
 
     public void set(

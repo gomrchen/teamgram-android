@@ -109,7 +109,7 @@ import java.util.HashSet;
 public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsListener, NotificationCenter.NotificationCenterDelegate {
 
     private static int lastPlayerId = 0;
-    public final int playerId = lastPlayerId++;
+    private int playerId = lastPlayerId++;
     public static final HashSet<Integer> activePlayers = new HashSet<>();
 
     private DispatchQueue workerQueue;
@@ -832,11 +832,7 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         for (int i = 0; i < documents.size(); ++i) {
             try {
                 final TLRPC.Document document = documents.get(i);
-                if (
-                    "application/x-mpegurl".equalsIgnoreCase(document.mime_type) ||
-                    "application/x-tgstoryboard".equalsIgnoreCase(document.mime_type) ||
-                    "application/x-tgstoryboardmap".equalsIgnoreCase(document.mime_type)
-                ) {
+                if ("application/x-mpegurl".equalsIgnoreCase(document.mime_type)) {
                     continue;
                 }
                 VideoUri q = VideoUri.of(currentAccount, document, manifests.get(document.id), reference, useFileDatabaseQueue);
@@ -1092,15 +1088,15 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
                 }
             }
 
-//            if (BuildVars.LOGS_ENABLED) {
-//                for (Quality q : qualities) {
-//                    FileLog.d("debug_loading_player: Quality "+q.p()+"p (" + q.width + "x" + q.height + ")" + (q.original ? " (source)" : "") + ":");
-//                    for (VideoUri uri : q.uris) {
-//                        FileLog.d("debug_loading_player: - video " + uri.width + "x" + uri.height + ", codec=" + uri.codec + ", bitrate=" + (int) (uri.bitrate*8) + ", doc#" + uri.docId + (uri.isCached() ? " (cached)" : "") + ", manifest#" + uri.manifestDocId + (uri.isManifestCached() ? " (cached)" : ""));
-//                    }
-//                }
-//                FileLog.d("debug_loading_player: ");
-//            }
+            if (BuildVars.LOGS_ENABLED) {
+                for (Quality q : qualities) {
+                    FileLog.d("debug_loading_player: Quality "+q.p()+"p (" + q.width + "x" + q.height + ")" + (q.original ? " (source)" : "") + ":");
+                    for (VideoUri uri : q.uris) {
+                        FileLog.d("debug_loading_player: - video " + uri.width + "x" + uri.height + ", codec=" + uri.codec + ", bitrate=" + (int) (uri.bitrate*8) + ", doc#" + uri.docId + (uri.isCached() ? " (cached)" : "") + ", manifest#" + uri.manifestDocId + (uri.isManifestCached() ? " (cached)" : ""));
+                    }
+                }
+                FileLog.d("debug_loading_player: ");
+            }
 
             return qualities;
         }
@@ -1454,11 +1450,9 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
     }
 
     public void setPlaybackSpeed(float speed) {
-        try {
-            if (player != null) {
-                player.setPlaybackParameters(new PlaybackParameters(speed, speed > 1.0f ? 0.98f : 1.0f));
-            }
-        } catch (Exception ignore) {}
+        if (player != null) {
+            player.setPlaybackParameters(new PlaybackParameters(speed, speed > 1.0f ? 0.98f : 1.0f));
+        }
     }
 
     public float getPlaybackSpeed() {

@@ -1103,7 +1103,7 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
             @Override
             public void onItemClick(int id) {
                 if (id == -1) {
-                    if (checkDiscard(true)) {
+                    if (checkDiscard()) {
                         return;
                     }
                     if (currentActivityType == TYPE_REQUEST || currentActivityType == TYPE_PASSWORD) {
@@ -6685,20 +6685,18 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
     }
 
     @Override
-    public boolean onBackPressed(boolean invoked) {
+    public boolean onBackPressed() {
         if (currentActivityType == TYPE_PHONE_VERIFICATION) {
-            if (invoked) {
-                views[currentViewNum].onBackPressed(true);
-                for (int a = 0; a < views.length; a++) {
-                    if (views[a] != null) {
-                        views[a].onDestroyActivity();
-                    }
+            views[currentViewNum].onBackPressed(true);
+            for (int a = 0; a < views.length; a++) {
+                if (views[a] != null) {
+                    views[a].onDestroyActivity();
                 }
             }
         } else if (currentActivityType == TYPE_REQUEST || currentActivityType == TYPE_PASSWORD) {
-            if (invoked) callCallback(false);
+            callCallback(false);
         } else if (currentActivityType == TYPE_IDENTITY || currentActivityType == TYPE_ADDRESS) {
-            return !checkDiscard(invoked);
+            return !checkDiscard();
         }
         return true;
     }
@@ -6841,7 +6839,7 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
             chatAttachAlert.setDelegate(new ChatAttachAlert.ChatAttachViewDelegate() {
 
                 @Override
-                public void didPressedButton(int button, boolean arg, boolean notify, int scheduleDate, int scheduleRepeatPeriod, long effectId, boolean invertMedia, boolean forceDocument, long payStars) {
+                public void didPressedButton(int button, boolean arg, boolean notify, int scheduleDate, long effectId, boolean invertMedia, boolean forceDocument, long payStars) {
                     if (getParentActivity() == null || chatAttachAlert == null) {
                         return;
                     }
@@ -6984,18 +6982,16 @@ public class PassportActivity extends BaseFragment implements NotificationCenter
         return initialValues == null || initialValues.equals(getCurrentValues());
     }
 
-    private boolean checkDiscard(boolean invoked) {
+    private boolean checkDiscard() {
         if (isHasNotAnyChanges()) {
             return false;
         }
-        if (invoked) {
-            final AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-            builder.setPositiveButton(LocaleController.getString(R.string.PassportDiscard), (dialog, which) -> finishFragment());
-            builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
-            builder.setTitle(LocaleController.getString(R.string.DiscardChanges));
-            builder.setMessage(LocaleController.getString(R.string.PassportDiscardChanges));
-            showDialog(builder.create());
-        }
+        AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+        builder.setPositiveButton(LocaleController.getString(R.string.PassportDiscard), (dialog, which) -> finishFragment());
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        builder.setTitle(LocaleController.getString(R.string.DiscardChanges));
+        builder.setMessage(LocaleController.getString(R.string.PassportDiscardChanges));
+        showDialog(builder.create());
         return true;
     }
 

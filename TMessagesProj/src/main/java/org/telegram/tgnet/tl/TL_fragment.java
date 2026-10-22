@@ -1,9 +1,10 @@
 package org.telegram.tgnet.tl;
 
+import org.telegram.tgnet.AbstractSerializedData;
 import org.telegram.tgnet.InputSerializedData;
 import org.telegram.tgnet.OutputSerializedData;
 import org.telegram.tgnet.TLObject;
-import org.telegram.tgnet.TLParseException;
+import org.telegram.tgnet.TLRPC;
 
 public class TL_fragment {
 
@@ -18,7 +19,13 @@ public class TL_fragment {
                     result = new TL_inputCollectiblePhone();
                     break;
             }
-            return TLdeserialize(InputCollectible.class, result, stream, constructor, exception);
+            if (result == null && exception) {
+                throw new RuntimeException(String.format("can't parse magic %x in InputCollectible", constructor));
+            }
+            if (result != null) {
+                result.readParams(stream, exception);
+            }
+            return result;
         }
     }
 
@@ -67,8 +74,16 @@ public class TL_fragment {
         public String url;
 
         public static TL_collectibleInfo TLdeserialize(InputSerializedData stream, int constructor, boolean exception) {
-            final TL_collectibleInfo result = TL_collectibleInfo.constructor != constructor ? null : new TL_collectibleInfo();
-            return TLdeserialize(TL_collectibleInfo.class, result, stream, constructor, exception);
+            if (TL_collectibleInfo.constructor != constructor) {
+                if (exception) {
+                    throw new RuntimeException(String.format("can't parse magic %x in TL_collectibleInfo", constructor));
+                } else {
+                    return null;
+                }
+            }
+            TL_collectibleInfo result = new TL_collectibleInfo();
+            result.readParams(stream, exception);
+            return result;
         }
 
         @Override

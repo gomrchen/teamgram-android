@@ -16,13 +16,14 @@ configurations.all {
 
 dependencies {
     implementation project(':TMessagesProj')
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5'
+    implementation 'androidx.multidex:multidex:2.0.1'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:1.1.5'
     implementation files('../TMessagesProj/libs/libgsaverification-client.aar')
 }
 
 android {
-    compileSdkVersion 35
-    buildToolsVersion '35.0.0'
+    compileSdkVersion 34
+    buildToolsVersion '34.0.0'
 
     defaultConfig.applicationId = APP_PACKAGE
 
@@ -32,6 +33,10 @@ android {
         disable 'MissingTranslation'
         disable 'ExtraTranslation'
         disable 'BlockedPrivateApi'
+    }
+
+    dexOptions {
+        jumboMode = true
     }
 
     compileOptions {
@@ -116,7 +121,6 @@ android {
             ext {
                 abiVersionCode = 1
             }
-            buildConfigField "boolean", "BUNDLE", "true"
         }
         bundleAfat_SDK23 {
             ndk {
@@ -132,11 +136,10 @@ android {
             ext {
                 abiVersionCode = 2
             }
-            buildConfigField "boolean", "BUNDLE", "true"
         }
         afat {
             ndk {
-                abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+                abiFilters "arm64-v8a"
             }
             sourceSets.debug {
                 manifest.srcFile '../TMessagesProj/config/debug/AndroidManifest_SDK23.xml'
@@ -150,7 +153,6 @@ android {
             ext {
                 abiVersionCode = 9
             }
-            buildConfigField "boolean", "BUNDLE", "false"
         }
     }
 
@@ -171,8 +173,8 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 35
+        minSdkVersion 19
+        targetSdkVersion 34
         versionName APP_VERSION_NAME
         ndkVersion "21.4.7075529"
 
@@ -183,7 +185,7 @@ android {
         externalNativeBuild {
             cmake {
                 version '3.10.2'
-                arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-21' // , '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
+                arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-16'
             }
         }
     }

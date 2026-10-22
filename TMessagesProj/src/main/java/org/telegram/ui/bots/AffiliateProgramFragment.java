@@ -7,6 +7,7 @@ import static org.telegram.ui.Components.Premium.boosts.cells.selector.SelectorU
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.text.TextUtils;
@@ -20,8 +21,11 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.graphics.ColorUtils;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.gms.vision.Frame;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
@@ -29,6 +33,7 @@ import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.Utilities;
 import org.telegram.messenger.browser.Browser;
+import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_bots;
 import org.telegram.tgnet.tl.TL_payments;
@@ -36,7 +41,9 @@ import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.INavigationLayout;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Adapters.MessagesSearchAdapter;
 import org.telegram.ui.Cells.HeaderCell;
+import org.telegram.ui.Components.Bulletin;
 import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
@@ -46,12 +53,15 @@ import org.telegram.ui.Components.Premium.GLIcon.GLIconTextureView;
 import org.telegram.ui.Components.Premium.GLIcon.Icon3D;
 import org.telegram.ui.Components.Premium.StarParticlesView;
 import org.telegram.ui.Components.RecyclerListView;
+import org.telegram.ui.Components.SizeNotifierFrameLayout;
 import org.telegram.ui.Components.TableView;
 import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
-import org.telegram.ui.Components.UniversalRecyclerView;
 import org.telegram.ui.GradientHeaderActivity;
+import org.telegram.ui.PremiumFeatureCell;
 import org.telegram.ui.ProfileActivity;
+import org.telegram.ui.Stars.ExplainStarsSheet;
+import org.telegram.ui.Stars.StarsIntroActivity;
 import org.telegram.ui.Stories.recorder.ButtonWithCounterView;
 
 import java.util.ArrayList;
@@ -559,10 +569,6 @@ public class AffiliateProgramFragment extends GradientHeaderActivity implements 
         private TextView textView;
 
         public FeatureCell(Context context, Theme.ResourcesProvider resourcesProvider) {
-            this(context, false, resourcesProvider);
-        }
-
-        public FeatureCell(Context context, boolean compact, Theme.ResourcesProvider resourcesProvider) {
             super(context);
 
             this.resourcesProvider = resourcesProvider;
@@ -570,11 +576,11 @@ public class AffiliateProgramFragment extends GradientHeaderActivity implements 
             imageView = new ImageView(context);
             imageView.setScaleType(ImageView.ScaleType.CENTER);
             imageView.setColorFilter(new PorterDuffColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider), PorterDuff.Mode.SRC_IN));
-            addView(imageView, LayoutHelper.createFrame(24, 24, Gravity.TOP | Gravity.LEFT, 20, 2 + 9.46f, 0, 0));
+            addView(imageView, LayoutHelper.createFrame(24, 24, Gravity.TOP | Gravity.LEFT, 20, 4.66f, 0, 0));
 
             textLayout = new LinearLayout(context);
             textLayout.setOrientation(LinearLayout.VERTICAL);
-            addView(textLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Gravity.FILL_HORIZONTAL, 64, compact ? 2 : 2 + 7.8f, 24, compact ? 4 : 2 + 7.8f));
+            addView(textLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Gravity.FILL_HORIZONTAL, 64, 3, 24, 5 + 7.66f));
 
             titleView = new TextView(context);
             titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
@@ -602,12 +608,12 @@ public class AffiliateProgramFragment extends GradientHeaderActivity implements 
             static { setup(new Factory()); }
 
             @Override
-            public FeatureCell createView(Context context, RecyclerListView listView, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
+            public FeatureCell createView(Context context, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
                 return new FeatureCell(context, resourcesProvider);
             }
 
             @Override
-            public void bindView(View view, UItem item, boolean divider, UniversalAdapter adapter, UniversalRecyclerView listView) {
+            public void bindView(View view, UItem item, boolean divider) {
                 ((FeatureCell) view).set(item.iconResId, item.text, item.subtext);
             }
 
@@ -729,12 +735,12 @@ public class AffiliateProgramFragment extends GradientHeaderActivity implements 
             static { setup(new Factory()); }
 
             @Override
-            public ColorfulTextCell createView(Context context, RecyclerListView listView, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
+            public ColorfulTextCell createView(Context context, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
                 return new ColorfulTextCell(context, resourcesProvider);
             }
 
             @Override
-            public void bindView(View view, UItem item, boolean divider, UniversalAdapter adapter, UniversalRecyclerView listView) {
+            public void bindView(View view, UItem item, boolean divider) {
                 ((ColorfulTextCell) view).set(
                     item.intValue, item.iconResId,
                     item.text, item.subtext
@@ -761,16 +767,5 @@ public class AffiliateProgramFragment extends GradientHeaderActivity implements 
         } else {
             return String.format(Locale.US, "%.1f%%", f);
         }
-    }
-
-    @Override
-    public boolean isSupportEdgeToEdge() {
-        return true;
-    }
-
-    @Override
-    public void onInsets(int left, int top, int right, int bottom) {
-        listView.setPadding(0, 0, 0, dp(10 + 48 + 10 + 16) + bottom);
-        listView.setClipToPadding(false);
     }
 }

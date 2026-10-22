@@ -7,8 +7,6 @@ import android.view.Gravity;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MediaDataController;
@@ -79,9 +77,9 @@ public class AvatarConstructorPreviewCell extends FrameLayout {
         }
     };
 
-    @NonNull
-    public static TLRPC.TL_emojiList getOrCreateEmojiList(int currentAccount, boolean forUser) {
-        TLRPC.TL_emojiList emojiList;
+    public AvatarConstructorPreviewCell(Context context, boolean forUser) {
+        super(context);
+        this.forUser = forUser;
         if (forUser) {
             emojiList = MediaDataController.getInstance(currentAccount).profileAvatarConstructorDefault;
         } else {
@@ -113,14 +111,8 @@ public class AvatarConstructorPreviewCell extends FrameLayout {
                     }
                 }
             }
-        }
-        return emojiList;
-    }
 
-    public AvatarConstructorPreviewCell(Context context, boolean forUser) {
-        super(context);
-        this.forUser = forUser;
-        this.emojiList = getOrCreateEmojiList(currentAccount, forUser);
+        }
         currentImage = new BackupImageView(context);
         nextImage = new BackupImageView(context);
         addView(currentImage, LayoutHelper.createFrame(50, 50, Gravity.CENTER_HORIZONTAL));

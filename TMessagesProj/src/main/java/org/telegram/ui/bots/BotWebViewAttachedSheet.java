@@ -21,6 +21,7 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.icu.util.Measure;
 import android.os.Build;
 import android.os.Bundle;
 import android.text.TextPaint;
@@ -120,11 +121,11 @@ public class BotWebViewAttachedSheet implements NotificationCenter.NotificationC
         }
         String str;
         if (currentBot.show_in_side_menu && currentBot.show_in_attach_menu) {
-            str = LocaleController.formatString(R.string.BotAttachMenuShortcatAddedAttachAndSide, user.first_name);
+            str = LocaleController.formatString("BotAttachMenuShortcatAddedAttachAndSide", R.string.BotAttachMenuShortcatAddedAttachAndSide, user.first_name);
         } else if (currentBot.show_in_side_menu) {
-            str = LocaleController.formatString(R.string.BotAttachMenuShortcatAddedSide, user.first_name);
+            str = LocaleController.formatString("BotAttachMenuShortcatAddedSide", R.string.BotAttachMenuShortcatAddedSide, user.first_name);
         } else {
-            str = LocaleController.formatString( R.string.BotAttachMenuShortcatAddedAttach, user.first_name);
+            str = LocaleController.formatString("BotAttachMenuShortcatAddedAttach", R.string.BotAttachMenuShortcatAddedAttach, user.first_name);
         }
         AndroidUtilities.runOnUIThread(() -> {
             BulletinFactory.of(windowView, resourcesProvider)
@@ -190,7 +191,6 @@ public class BotWebViewAttachedSheet implements NotificationCenter.NotificationC
     private long peerId;
     private long queryId;
     private int replyToMsgId;
-    private long monoforumTopicId;
     private boolean silent;
     private String buttonText;
     private boolean forceExpnaded;
@@ -357,14 +357,6 @@ public class BotWebViewAttachedSheet implements NotificationCenter.NotificationC
             prolongWebView.silent = silent;
             if (replyToMsgId != 0) {
                 prolongWebView.reply_to = SendMessagesHelper.getInstance(currentAccount).createReplyInput(replyToMsgId);
-                if (monoforumTopicId != 0) {
-                    prolongWebView.reply_to.monoforum_peer_id = MessagesController.getInstance(currentAccount).getInputPeer(monoforumTopicId);
-                    prolongWebView.reply_to.flags |= 32;
-                }
-                prolongWebView.flags |= 1;
-            } else if (monoforumTopicId != 0) {
-                prolongWebView.reply_to = new TLRPC.TL_inputReplyToMonoForum();
-                prolongWebView.reply_to.monoforum_peer_id = MessagesController.getInstance(currentAccount).getInputPeer(monoforumTopicId);
                 prolongWebView.flags |= 1;
             }
             ConnectionsManager.getInstance(currentAccount).sendRequest(prolongWebView, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
@@ -582,7 +574,7 @@ public class BotWebViewAttachedSheet implements NotificationCenter.NotificationC
                     DialogsActivity dialogsActivity = new DialogsActivity(args);
                     AndroidUtilities.hideKeyboard(windowView);
                     OverlayActionBarLayoutDialog overlayActionBarLayoutDialog = new OverlayActionBarLayoutDialog(getContext(), resourcesProvider);
-                    dialogsActivity.setDelegate((fragment, dids, message1, param, notify, scheduleDate, scheduleRepeatPeriod, topicsFragment) -> {
+                    dialogsActivity.setDelegate((fragment, dids, message1, param, notify, scheduleDate, topicsFragment) -> {
                         long did = dids.get(0).dialogId;
 
                         Bundle args1 = new Bundle();
@@ -620,13 +612,13 @@ public class BotWebViewAttachedSheet implements NotificationCenter.NotificationC
             }
 
             @Override
-            public void onSetupMainButton(boolean isVisible, boolean isActive, String text, long emojiId, int color, int textColor, boolean isProgressVisible, boolean hasShineEffect) {
-                botButtons.setMainState(BotButtons.ButtonState.of(isVisible, isActive, isProgressVisible, hasShineEffect, text, emojiId, color, textColor), true);
+            public void onSetupMainButton(boolean isVisible, boolean isActive, String text, int color, int textColor, boolean isProgressVisible, boolean hasShineEffect) {
+                botButtons.setMainState(BotButtons.ButtonState.of(isVisible, isActive, isProgressVisible, hasShineEffect, text, color, textColor), true);
             }
 
             @Override
-            public void onSetupSecondaryButton(boolean isVisible, boolean isActive, String text, long emojiId, int color, int textColor, boolean isProgressVisible, boolean hasShineEffect, String position) {
-                botButtons.setSecondaryState(BotButtons.ButtonState.of(isVisible, isActive, isProgressVisible, hasShineEffect, text, emojiId, color, textColor, position), true);
+            public void onSetupSecondaryButton(boolean isVisible, boolean isActive, String text, int color, int textColor, boolean isProgressVisible, boolean hasShineEffect, String position) {
+                botButtons.setSecondaryState(BotButtons.ButtonState.of(isVisible, isActive, isProgressVisible, hasShineEffect, text, color, textColor, position), true);
             }
 
             @Override
@@ -639,7 +631,7 @@ public class BotWebViewAttachedSheet implements NotificationCenter.NotificationC
 
             @Override
             public boolean isClipboardAvailable() {
-                return MediaDataController.getInstance(currentAccount).botInAttachMenu(botId) || MessagesController.getInstance(currentAccount).whitelistedBots.contains(botId);
+                return MediaDataController.getInstance(currentAccount).botInAttachMenu(botId);
             }
         });
 
@@ -942,7 +934,6 @@ public class BotWebViewAttachedSheet implements NotificationCenter.NotificationC
         this.peerId = props.peerId;
         this.botId = props.botId;
         this.replyToMsgId = props.replyToMsgId;
-        this.monoforumTopicId = props.monoforumTopicId;
         this.silent = props.silent;
         this.buttonText = props.buttonText;
         this.currentWebApp = props.app;
@@ -1165,14 +1156,6 @@ public class BotWebViewAttachedSheet implements NotificationCenter.NotificationC
 
                     if (replyToMsgId != 0) {
                         req.reply_to = SendMessagesHelper.getInstance(currentAccount).createReplyInput(replyToMsgId);
-                        if (monoforumTopicId != 0) {
-                            req.reply_to.monoforum_peer_id = MessagesController.getInstance(currentAccount).getInputPeer(monoforumTopicId);
-                            req.reply_to.flags |= 32;
-                        }
-                        req.flags |= 1;
-                    } else if (monoforumTopicId != 0) {
-                        req.reply_to = new TLRPC.TL_inputReplyToMonoForum();
-                        req.reply_to.monoforum_peer_id = MessagesController.getInstance(currentAccount).getInputPeer(monoforumTopicId);
                         req.flags |= 1;
                     }
 
@@ -1566,7 +1549,7 @@ public class BotWebViewAttachedSheet implements NotificationCenter.NotificationC
         if (dialog != null) {
             dialog.updateNavigationBarColor();
         } else if (attachedToParent() && LaunchActivity.instance != null) {
-            LaunchActivity.instance.checkSystemBarColors(true, true, true);
+            LaunchActivity.instance.checkSystemBarColors(true, true, true, false);
             //LaunchActivity.instance.setNavigationBarColor(fragment.getNavigationBarColor(), false);
         }
     }
@@ -1920,13 +1903,9 @@ public class BotWebViewAttachedSheet implements NotificationCenter.NotificationC
             lastFragment.presentFragment(ChatActivity.of(botId));
         }
         AndroidUtilities.runOnUIThread(() -> {
-            SendMessagesHelper.getInstance(currentAccount).sendMessage(SendMessagesHelper.SendMessageParams.of("/privacy", botId, null, null, null, false, null, null, null, true, 0, 0, null, false));
+            SendMessagesHelper.getInstance(currentAccount).sendMessage(SendMessagesHelper.SendMessageParams.of("/privacy", botId, null, null, null, false, null, null, null, true, 0, null, false));
         }, 150);
         return true;
     }
 
-    @Override
-    public BulletinFactory getBulletinFactory() {
-        return BulletinFactory.of(windowView, resourcesProvider);
-    }
 }

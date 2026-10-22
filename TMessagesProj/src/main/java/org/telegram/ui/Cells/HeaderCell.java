@@ -43,22 +43,22 @@ public class HeaderCell extends FrameLayout {
     private SimpleTextView textView2;
     private int height = 40;
     private final Theme.ResourcesProvider resourcesProvider;
-    private final boolean animated;
+    private boolean animated;
 
     public HeaderCell(Context context) {
-        this(context, Theme.key_windowBackgroundWhiteBlueHeader, 20, 6, false, null);
+        this(context, Theme.key_windowBackgroundWhiteBlueHeader, 21, 15, false, null);
     }
 
     public HeaderCell(Context context, Theme.ResourcesProvider resourcesProvider) {
-        this(context, Theme.key_windowBackgroundWhiteBlueHeader, 20, 6, false, resourcesProvider);
+        this(context, Theme.key_windowBackgroundWhiteBlueHeader, 21, 15, false, resourcesProvider);
     }
 
     public HeaderCell(Context context, int padding) {
-        this(context, Theme.key_windowBackgroundWhiteBlueHeader, padding, 6, false, null);
+        this(context, Theme.key_windowBackgroundWhiteBlueHeader, padding, 15, false, null);
     }
 
     public HeaderCell(Context context, int padding, Theme.ResourcesProvider resourcesProvider) {
-        this(context, Theme.key_windowBackgroundWhiteBlueHeader, padding, 6, false, resourcesProvider);
+        this(context, Theme.key_windowBackgroundWhiteBlueHeader, padding, 15, false, resourcesProvider);
     }
 
     public HeaderCell(Context context, int textColorKey, int padding, int topMargin, boolean text2) {
@@ -109,14 +109,7 @@ public class HeaderCell extends FrameLayout {
         }
 
         ViewCompat.setAccessibilityHeading(this, true);
-    }
-
-    public void setOnWidthUpdateListener(Runnable listener) {
-        animatedTextView.setOnWidthUpdatedListener(listener);
-    }
-
-    public float getAnimatedWidth() {
-        return animatedTextView.getDrawable().getCurrentWidth();
+        updateColors();
     }
 
     public void setHeight(int value) {
@@ -163,10 +156,47 @@ public class HeaderCell extends FrameLayout {
     public void setTextColor(int color) {
         if (textView != null) {
             textView.setTextColor(color);
-        }
-        if (animatedTextView != null) {
+        } else if (animatedTextView != null) {
             animatedTextView.setTextColor(color);
         }
+    }
+
+    public void updateColors() {
+        int colorKey = Theme.key_windowBackgroundWhiteBlueHeader;
+        if (animatedTextView != null && animatedTextView.getTag() instanceof Integer) {
+            colorKey = (Integer) animatedTextView.getTag();
+        } else if (textView != null && textView.getTag() instanceof Integer) {
+            colorKey = (Integer) textView.getTag();
+        }
+        int color = getContrastingTextColor(colorKey);
+        if (animatedTextView != null) {
+            animatedTextView.setTextColor(color);
+        } else if (textView != null) {
+            textView.setTextColor(color);
+        }
+    }
+
+    private int getContrastingTextColor(int colorKey) {
+        int color = getThemedColor(colorKey);
+        int bgColor = getThemedColor(Theme.key_windowBackgroundWhite);
+        float textBrightness = AndroidUtilities.computePerceivedBrightness(color);
+        float bgBrightness = AndroidUtilities.computePerceivedBrightness(bgColor);
+        if (Math.abs(textBrightness - bgBrightness) < 0.35f) {
+            int fallbackKey = bgBrightness > 0.705f ? Theme.key_windowBackgroundWhiteBlackText : Theme.key_windowBackgroundWhiteBlueHeader;
+            int fallbackColor = getThemedColor(fallbackKey);
+            if (Math.abs(AndroidUtilities.computePerceivedBrightness(fallbackColor) - bgBrightness) >= 0.35f) {
+                color = fallbackColor;
+            } else {
+                color = bgBrightness > 0.705f ? 0xff222222 : 0xffffffff;
+            }
+        }
+        return color;
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        updateColors();
     }
 
     public void setText(CharSequence text) {
@@ -203,7 +233,7 @@ public class HeaderCell extends FrameLayout {
         super.onInitializeAccessibilityNodeInfo(info);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             info.setHeading(true);
-        } else {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             AccessibilityNodeInfo.CollectionItemInfo collection = info.getCollectionItemInfo();
             if (collection != null) {
                 info.setCollectionItemInfo(AccessibilityNodeInfo.CollectionItemInfo.obtain(collection.getRowIndex(), collection.getRowSpan(), collection.getColumnIndex(), collection.getColumnSpan(), true));

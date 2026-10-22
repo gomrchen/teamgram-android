@@ -89,7 +89,7 @@ public class LocationActivity extends BaseFragment implements NotificationCenter
             @Override
             public void onItemClick(int id) {
                 if (id == -1) {
-                    if (onBackPressed(true)) {
+                    if (onBackPressed()) {
                         finishFragment();
                     }
                 } else if (id == done_button) {
@@ -189,6 +189,11 @@ public class LocationActivity extends BaseFragment implements NotificationCenter
             ignoreEditText = false;
         }
 
+//        mapLoadingDrawable = new LoadingDrawable(resourceProvider);
+//        mapLoadingDrawable.setColors(
+//            Theme.multAlpha(getThemedColor(Theme.key_windowBackgroundWhiteBlackText), .025f),
+//            Theme.multAlpha(getThemedColor(Theme.key_windowBackgroundWhiteBlackText), Theme.isCurrentThemeDark() ? .25f : .12f)
+//        );
         mapPreview = new BackupImageView(context) {
             @Override
             protected ImageReceiver createImageReciever() {
@@ -248,10 +253,7 @@ public class LocationActivity extends BaseFragment implements NotificationCenter
         updateMapPreview();
 
         listView = new UniversalRecyclerView(this, this::fillItems, this::onClick, null);
-        listView.setSections();
-        listView.adapter.setApplyBackground(false);
         contentView.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-        actionBar.setAdaptiveBackground(listView);
 
         setValue();
 
@@ -429,20 +431,18 @@ public class LocationActivity extends BaseFragment implements NotificationCenter
     }
 
     @Override
-    public boolean onBackPressed(boolean invoked) {
+    public boolean onBackPressed() {
         final boolean empty = geo == null && TextUtils.isEmpty(address);
         if (hasChanges() && !empty) {
-            if (invoked) {
-                final AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-                builder.setTitle(LocaleController.getString(R.string.UnsavedChanges));
-                builder.setMessage(LocaleController.getString(R.string.BusinessLocationUnsavedChanges));
-                builder.setPositiveButton(LocaleController.getString(R.string.ApplyTheme), (dialogInterface, i) -> processDone());
-                builder.setNegativeButton(LocaleController.getString(R.string.PassportDiscard), (dialog, which) -> finishFragment());
-                showDialog(builder.create());
-            }
+            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+            builder.setTitle(LocaleController.getString(R.string.UnsavedChanges));
+            builder.setMessage(LocaleController.getString(R.string.BusinessLocationUnsavedChanges));
+            builder.setPositiveButton(LocaleController.getString(R.string.ApplyTheme), (dialogInterface, i) -> processDone());
+            builder.setNegativeButton(LocaleController.getString(R.string.PassportDiscard), (dialog, which) -> finishFragment());
+            showDialog(builder.create());
             return false;
         }
-        return super.onBackPressed(invoked);
+        return super.onBackPressed();
     }
 
     @Override
@@ -561,13 +561,4 @@ public class LocationActivity extends BaseFragment implements NotificationCenter
         }
     }
 
-    @Override
-    public boolean isSupportEdgeToEdge() {
-        return true;
-    }
-    @Override
-    public void onInsets(int left, int top, int right, int bottom) {
-        listView.setPadding(0, 0, 0, bottom);
-        listView.setClipToPadding(false);
-    }
 }

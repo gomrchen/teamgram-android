@@ -14,7 +14,6 @@ import android.os.SystemClock;
 import android.util.Base64;
 import android.util.LongSparseArray;
 
-import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_account;
@@ -60,18 +59,15 @@ public class UserConfig extends BaseController {
     public boolean notificationsSignUpSettingsLoaded;
     public boolean syncContacts = true;
     public boolean suggestContacts = true;
-    public boolean showCallsTab;
     public boolean hasSecureData;
     public int loginTime;
     public TLRPC.TL_help_termsOfService unacceptedTermsOfService;
     public long autoDownloadConfigLoadTime;
 
     public String premiumGiftsStickerPack;
-    public String premiumTonStickerPack;
     public String genericAnimationsStickerPack;
     public String defaultTopicIcons;
     public long lastUpdatedPremiumGiftsStickerPack;
-    public long lastUpdatedTonGiftsStickerPack;
     public long lastUpdatedGenericAnimations;
     public long lastUpdatedDefaultTopicIcons;
 
@@ -158,7 +154,6 @@ public class UserConfig extends BaseController {
                     editor.putBoolean("contactsReimported", contactsReimported);
                     editor.putInt("loginTime", loginTime);
                     editor.putBoolean("syncContacts", syncContacts);
-                    editor.putBoolean("showCallsTab", showCallsTab);
                     editor.putBoolean("suggestContacts", suggestContacts);
                     editor.putBoolean("hasSecureData", hasSecureData);
                     editor.putBoolean("notificationsSettingsLoaded4", notificationsSettingsLoaded);
@@ -309,7 +304,6 @@ public class UserConfig extends BaseController {
             webappRatingLoadTime = preferences.getInt("webappRatingLoadTime", 0);
             loginTime = preferences.getInt("loginTime", currentAccount);
             syncContacts = preferences.getBoolean("syncContacts", true);
-            showCallsTab = preferences.getBoolean("showCallsTab", false);
             suggestContacts = preferences.getBoolean("suggestContacts", true);
             hasSecureData = preferences.getBoolean("hasSecureData", false);
             notificationsSettingsLoaded = preferences.getBoolean("notificationsSettingsLoaded4", false);
@@ -480,7 +474,6 @@ public class UserConfig extends BaseController {
         draftsLoaded = false;
         contactsReimported = true;
         syncContacts = true;
-        showCallsTab = false;
         suggestContacts = true;
         unreadDialogsLoaded = true;
         hasValidDialogLoadIds = true;
@@ -560,13 +553,6 @@ public class UserConfig extends BaseController {
         editor.commit();
     }
 
-    public void setShowCallsTab(boolean show) {
-        if (showCallsTab != show) {
-            showCallsTab = show;
-            saveConfig(false);
-        }
-    }
-
     public boolean isPremium() {
         TLRPC.User user = currentUser;
         if (user == null) {
@@ -612,14 +598,5 @@ public class UserConfig extends BaseController {
     public void clearFilters() {
         getPreferences().edit().remove("filtersLoaded").apply();
         filtersLoaded = false;
-    }
-
-    public static int getProductionAccount() {
-        for (int i = -1; i < MAX_ACCOUNT_COUNT; ++i) {
-            final int account = i < 0 ? selectedAccount : i;
-            if (getInstance(account).isClientActivated() && !ConnectionsManager.getInstance(account).isTestBackend())
-                return account;
-        }
-        return selectedAccount;
     }
 }

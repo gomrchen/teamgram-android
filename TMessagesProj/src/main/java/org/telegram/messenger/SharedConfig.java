@@ -215,9 +215,6 @@ public class SharedConfig {
     public static boolean pushStatSent;
     public static byte[] pushAuthKey;
     public static byte[] pushAuthKeyId;
-    public static boolean forceForumTabs;
-    public static boolean fastWallpaperDisabled;
-    public static boolean frameMetricsEnabled;
 
     public static String directShareHash;
 
@@ -312,7 +309,6 @@ public class SharedConfig {
     public static int repeatMode;
     public static boolean allowBigEmoji;
     public static boolean useSystemEmoji;
-    public static boolean useSystemBoldFont;
     public static int fontSize = 16;
     public static boolean fontSizeIsDefault;
     public static int bubbleRadius = 17;
@@ -323,7 +319,6 @@ public class SharedConfig {
     public static int emojiInteractionsHintCount;
     public static int dayNightThemeSwitchHintCount;
     public static int callEncryptionHintDisplayedCount;
-    public static boolean shadowsInSections;
 
     public static TLRPC.TL_help_appUpdate pendingAppUpdate;
     public static int pendingAppUpdateBuildVersion;
@@ -610,13 +605,6 @@ public class SharedConfig {
             ivFontSize = preferences.getInt("iv_font_size", fontSize);
             allowBigEmoji = preferences.getBoolean("allowBigEmoji", true);
             useSystemEmoji = preferences.getBoolean("useSystemEmoji", false);
-            useSystemBoldFont = preferences.getBoolean("useSystemBoldFont", false);
-            forceForumTabs = preferences.getBoolean("forceForumTabs", false);
-            fastWallpaperDisabled = preferences.getBoolean("fastWallpaperDisabled", false);
-            frameMetricsEnabled = preferences.getBoolean("frameMetricsEnabled", false);
-            if (useSystemBoldFont) {
-                AndroidUtilities.mediumTypeface = null;
-            }
             streamMedia = preferences.getBoolean("streamMedia", true);
             saveStreamMedia = preferences.getBoolean("saveStreamMedia", true);
             pauseMusicOnRecord = preferences.getBoolean("pauseMusicOnRecord", true);
@@ -675,7 +663,6 @@ public class SharedConfig {
             multipleReactionsPromoShowed = preferences.getBoolean("multipleReactionsPromoShowed", false);
             callEncryptionHintDisplayedCount = preferences.getInt("callEncryptionHintDisplayedCount", 0);
             debugVideoQualities = preferences.getBoolean("debugVideoQualities", false);
-            shadowsInSections = preferences.getBoolean("shadowsInSections", false);
 
             loadDebugConfig(preferences);
 
@@ -1106,39 +1093,6 @@ public class SharedConfig {
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("allowBigEmoji", allowBigEmoji);
-        editor.apply();
-    }
-
-    public static void toggleUseSystemBoldFont() {
-        useSystemBoldFont = !useSystemBoldFont;
-        AndroidUtilities.mediumTypeface = null;
-        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean("useSystemBoldFont", useSystemBoldFont);
-        editor.apply();
-    }
-
-    public static void toggleForceForumTabs() {
-        forceForumTabs = !forceForumTabs;
-        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean("forceForumTabs", forceForumTabs);
-        editor.apply();
-    }
-
-    public static void toggleFastWallpaperDisabled() {
-        fastWallpaperDisabled = !fastWallpaperDisabled;
-        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean("fastWallpaperDisabled", fastWallpaperDisabled);
-        editor.apply();
-    }
-
-    public static void toggleFrameMetricsEnabled() {
-        frameMetricsEnabled = !frameMetricsEnabled;
-        SharedPreferences preferences = MessagesController.getGlobalMainSettings();
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putBoolean("frameMetricsEnabled", frameMetricsEnabled);
         editor.apply();
     }
 

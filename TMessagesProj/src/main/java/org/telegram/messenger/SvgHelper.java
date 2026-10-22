@@ -39,12 +39,12 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.util.Log;
 import android.util.SparseArray;
 
 import androidx.core.graphics.ColorUtils;
 
-import org.telegram.messenger.wallpaper.WallpaperGiftPatternPosition;
+import com.google.android.exoplayer2.util.Log;
+
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.DrawingInBackgroundThreadDrawable;
 import org.xml.sax.Attributes;
@@ -58,10 +58,7 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
-import java.util.regex.Pattern;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
@@ -488,24 +485,6 @@ public class SvgHelper {
         }
     }
 
-    public static SvgResult getSvgBitmap(File file, int width, int height, boolean white) {
-        try (FileInputStream stream = new FileInputStream(file)) {
-            SAXParserFactory spf = SAXParserFactory.newInstance();
-            SAXParser sp = spf.newSAXParser();
-            XMLReader xr = sp.getXMLReader();
-            SVGHandler handler = new SVGHandler(width, height, white ? 0xffffffff : null, false, 1f);
-            if (!white) {
-                handler.alphaOnly = true;
-            }
-            xr.setContentHandler(handler);
-            xr.parse(new InputSource(stream));
-            return handler;
-        } catch (Exception e) {
-            FileLog.e(e);
-            return null;
-        }
-    }
-
     public static Bitmap getBitmap(String xml, int width, int height, boolean white) {
         try {
             SAXParserFactory spf = SAXParserFactory.newInstance();
@@ -674,19 +653,7 @@ public class SvgHelper {
         return new NumberParse(numbers, p);
     }
 
-    public static Matrix parseTransform(String s) {
-        Matrix matrix = new Matrix();
-        List<String> commands = splitSvgTransforms(s);
-        for (String command : commands) {
-            Matrix m = parseTransformCommand(command);
-            if (m != null) {
-                matrix.preConcat(m);
-            }
-        }
-        return matrix;
-    }
-
-    private static Matrix parseTransformCommand(String s) {
+    private static Matrix parseTransform(String s) {
         if (s.startsWith("matrix(")) {
             NumberParse np = parseNumbers(s.substring("matrix(".length()));
             if (np.numbers.size() == 6) {
@@ -741,15 +708,17 @@ public class SvgHelper {
         } else if (s.startsWith("rotate(")) {
             NumberParse np = parseNumbers(s.substring("rotate(".length()));
             if (np.numbers.size() > 0) {
-                final Matrix matrix = new Matrix();
                 float angle = np.numbers.get(0);
+                float cx = 0;
+                float cy = 0;
                 if (np.numbers.size() > 2) {
-                    float cx = np.numbers.get(1);
-                    float cy = np.numbers.get(2);
-                    matrix.postRotate(angle, cx, cy);
-                } else {
-                    matrix.postRotate(angle);
+                    cx = np.numbers.get(1);
+                    cy = np.numbers.get(2);
                 }
+                Matrix matrix = new Matrix();
+                matrix.postTranslate(cx, cy);
+                matrix.postRotate(angle);
+                matrix.postTranslate(-cx, -cy);
                 return matrix;
             }
         }
@@ -757,10 +726,6 @@ public class SvgHelper {
     }
 
     public static Path doPath(String s) {
-        if (ApplicationLoader.isAndroidTestEnvironment()) {
-            return new Path();
-        }
-
         int n = s.length();
         ParserHelper ph = new ParserHelper(s, 0);
         ph.skipWhitespace();
@@ -787,20 +752,22 @@ public class SvgHelper {
                 case '7':
                 case '8':
                 case '9':
-                case '.':
                     if (prevCmd == 'm' || prevCmd == 'M') {
                         cmd = (char) (((int) prevCmd) - 1);
                         break;
-                    } else if (
-                        prevCmd == 'c' || prevCmd == 'C' ||
-                        prevCmd == 'l' || prevCmd == 'L' ||
-                        prevCmd == 's' || prevCmd == 'S' ||
-                        prevCmd == 'h' || prevCmd == 'H' ||
-                        prevCmd == 'v' || prevCmd == 'V' ||
-                        prevCmd == 'q' || prevCmd == 'Q' ||
-                        prevCmd == 'a' || prevCmd == 'A' ||
-                        prevCmd == 't' || prevCmd == 'T'
-                    ) {
+                    } else if (prevCmd == 'c' || prevCmd == 'C') {
+                        cmd = prevCmd;
+                        break;
+                    } else if (prevCmd == 'l' || prevCmd == 'L') {
+                        cmd = prevCmd;
+                        break;
+                    } else if (prevCmd == 's' || prevCmd == 'S') {
+                        cmd = prevCmd;
+                        break;
+                    } else if (prevCmd == 'h' || prevCmd == 'H') {
+                        cmd = prevCmd;
+                        break;
+                    } else if (prevCmd == 'v' || prevCmd == 'V') {
                         cmd = prevCmd;
                         break;
                     }
@@ -932,53 +899,11 @@ public class SvgHelper {
                     float rx = ph.nextFloat();
                     float ry = ph.nextFloat();
                     float theta = ph.nextFloat();
-                    boolean largeArc = ((int) ph.nextFloat()) == 1;
-                    boolean sweepArc = ((int) ph.nextFloat()) == 1;
+                    int largeArc = (int) ph.nextFloat();
+                    int sweepArc = (int) ph.nextFloat();
                     float x = ph.nextFloat();
                     float y = ph.nextFloat();
-                    if (cmd == 'a') {
-                        x += lastX;
-                        y += lastY;
-                    }
                     drawArc(p, lastX, lastY, x, y, rx, ry, theta, largeArc, sweepArc);
-                    lastX = x;
-                    lastY = y;
-                    break;
-                }
-                case 'Q':
-                case 'q': {
-                    wasCurve = true;
-                    float x1 = ph.nextFloat();
-                    float y1 = ph.nextFloat();
-                    float x = ph.nextFloat();
-                    float y = ph.nextFloat();
-                    if (cmd == 'q') {
-                        x1 += lastX;
-                        y1 += lastY;
-                        x += lastX;
-                        y += lastY;
-                    }
-                    p.quadTo(x1, y1, x, y);
-                    lastX1 = x1;
-                    lastY1 = y1;
-                    lastX = x;
-                    lastY = y;
-                    break;
-                }
-                case 'T':
-                case 't': {
-                    wasCurve = true;
-                    float x = ph.nextFloat();
-                    float y = ph.nextFloat();
-                    if (cmd == 't') {
-                        x += lastX;
-                        y += lastY;
-                    }
-                    float x1 = 2 * lastX - lastX1;
-                    float y1 = 2 * lastY - lastY1;
-                    p.quadTo(x1, y1, x, y);
-                    lastX1 = x1;
-                    lastY1 = y1;
                     lastX = x;
                     lastY = y;
                     break;
@@ -993,176 +918,8 @@ public class SvgHelper {
         return p;
     }
 
-    // 🙏 https://github.com/BigBadaboom/androidsvg/blob/fef8b61f38d6ae6e5efde446fbbd7b6e291518fb/androidsvg/src/main/java/com/caverock/androidsvg/utils/SVGAndroidRenderer.java#L2937
-    private static void drawArc(Path path, float lastX, float lastY, float x, float y, float rx, float ry, float angle, boolean largeArcFlag, boolean sweepFlag) {
-        if (lastX == x && lastY == y) {
-            // If the endpoints (x, y) and (x0, y0) are identical, then this
-            // is equivalent to omitting the elliptical arc segment entirely.
-            // (behaviour specified by the spec)
-            return;
-        }
-
-        // Handle degenerate case (behaviour specified by the spec)
-        if (rx == 0 || ry == 0) {
-            path.lineTo(x, y);
-            return;
-        }
-
-        // Sign of the radii is ignored (behaviour specified by the spec)
-        rx = Math.abs(rx);
-        ry = Math.abs(ry);
-
-        // Convert angle from degrees to radians
-        double angleRad = Math.toRadians(angle % 360.0);
-        double cosAngle = Math.cos(angleRad);
-        double sinAngle = Math.sin(angleRad);
-
-        // We simplify the calculations by transforming the arc so that the origin is at the
-        // midpoint calculated above followed by a rotation to line up the coordinate axes
-        // with the axes of the ellipse.
-
-        // Compute the midpoint of the line between the current and the end point
-        double dx2 = (lastX - x) / 2.0;
-        double dy2 = (lastY - y) / 2.0;
-
-        // Step 1 : Compute (x1', y1')
-        // x1,y1 is the midpoint vector rotated to take the arc's angle out of consideration
-        double x1 = (cosAngle * dx2 + sinAngle * dy2);
-        double y1 = (-sinAngle * dx2 + cosAngle * dy2);
-
-        double rx_sq = rx * rx;
-        double ry_sq = ry * ry;
-        double x1_sq = x1 * x1;
-        double y1_sq = y1 * y1;
-
-        // Check that radii are large enough.
-        // If they are not, the spec says to scale them up so they are.
-        // This is to compensate for potential rounding errors/differences between SVG implementations.
-        double radiiCheck = x1_sq / rx_sq + y1_sq / ry_sq;
-        if (radiiCheck > 0.99999) {
-            double radiiScale = Math.sqrt(radiiCheck) * 1.00001;
-            rx = (float) (radiiScale * rx);
-            ry = (float) (radiiScale * ry);
-            rx_sq = rx * rx;
-            ry_sq = ry * ry;
-        }
-
-        // Step 2 : Compute (cx1, cy1) - the transformed centre point
-        double sign = (largeArcFlag == sweepFlag) ? -1 : 1;
-        double sq = ((rx_sq * ry_sq) - (rx_sq * y1_sq) - (ry_sq * x1_sq)) / ((rx_sq * y1_sq) + (ry_sq * x1_sq));
-        sq = (sq < 0) ? 0 : sq;
-        double coef = (sign * Math.sqrt(sq));
-        double cx1 = coef * ((rx * y1) / ry);
-        double cy1 = coef * -((ry * x1) / rx);
-
-        // Step 3 : Compute (cx, cy) from (cx1, cy1)
-        double sx2 = (lastX + x) / 2.0;
-        double sy2 = (lastY + y) / 2.0;
-        double cx = sx2 + (cosAngle * cx1 - sinAngle * cy1);
-        double cy = sy2 + (sinAngle * cx1 + cosAngle * cy1);
-
-        // Step 4 : Compute the angleStart (angle1) and the angleExtent (dangle)
-        double ux = (x1 - cx1) / rx;
-        double uy = (y1 - cy1) / ry;
-        double vx = (-x1 - cx1) / rx;
-        double vy = (-y1 - cy1) / ry;
-        double p, n;
-
-        // Angle betwen two vectors is +/- acos( u.v / len(u) * len(v))
-        // Where '.' is the dot product. And +/- is calculated from the sign of the cross product (u x v)
-
-        final double  TWO_PI = Math.PI * 2.0;
-
-        // Compute the start angle
-        // The angle between (ux,uy) and the 0deg angle (1,0)
-        n = Math.sqrt((ux * ux) + (uy * uy));  // len(u) * len(1,0) == len(u)
-        p = ux;                                // u.v == (ux,uy).(1,0) == (1 * ux) + (0 * uy) == ux
-        sign = (uy < 0) ? -1.0 : 1.0;          // u x v == (1 * uy - ux * 0) == uy
-        double angleStart = sign * Math.acos(p / n);  // No need for checkedArcCos() here. (p >= n) should always be true.
-
-        // Compute the angle extent
-        n = Math.sqrt((ux * ux + uy * uy) * (vx * vx + vy * vy));
-        p = ux * vx + uy * vy;
-        sign = (ux * vy - uy * vx < 0) ? -1.0f : 1.0f;
-        double angleExtent = sign * checkedArcCos(p / n);
-
-        // Catch angleExtents of 0, which will cause problems later in arcToBeziers
-        if (angleExtent == 0f) {
-            path.lineTo(x, y);
-            return;
-        }
-
-        if (!sweepFlag && angleExtent > 0) {
-            angleExtent -= TWO_PI;
-        } else if (sweepFlag && angleExtent < 0) {
-            angleExtent += TWO_PI;
-        }
-        angleExtent %= TWO_PI;
-        angleStart %= TWO_PI;
-
-        // Many elliptical arc implementations including the Java2D and Android ones, only
-        // support arcs that are axis aligned.  Therefore we need to substitute the arc
-        // with bezier curves.  The following method call will generate the beziers for
-        // a unit circle that covers the arc angles we want.
-        float[]  bezierPoints = arcToBeziers(angleStart, angleExtent);
-
-        // Calculate a transformation matrix that will move and scale these bezier points to the correct location.
-        Matrix m = new Matrix();
-        m.postScale(rx, ry);
-        m.postRotate(angle);
-        m.postTranslate((float) cx, (float) cy);
-        m.mapPoints(bezierPoints);
-
-        // The last point in the bezier set should match exactly the last coord pair in the arc (ie: x,y). But
-        // considering all the mathematical manipulation we have been doing, it is bound to be off by a tiny
-        // fraction. Experiments show that it can be up to around 0.00002.  So why don't we just set it to
-        // exactly what it ought to be.
-        bezierPoints[bezierPoints.length-2] = x;
-        bezierPoints[bezierPoints.length-1] = y;
-
-        // Final step is to add the bezier curves to the path
-        for (int i=0; i<bezierPoints.length; i+=6)
-        {
-            path.cubicTo(bezierPoints[i], bezierPoints[i+1], bezierPoints[i+2], bezierPoints[i+3], bezierPoints[i+4], bezierPoints[i+5]);
-        }
-    }
-
-    private static float[] arcToBeziers(double angleStart, double angleExtent)
-    {
-        int    numSegments = (int) Math.ceil(Math.abs(angleExtent) * 2.0 / Math.PI);  // (angleExtent / 90deg)
-
-        double  angleIncrement = angleExtent / numSegments;
-
-        // The length of each control point vector is given by the following formula.
-        double  controlLength = 4.0 / 3.0 * Math.sin(angleIncrement / 2.0) / (1.0 + Math.cos(angleIncrement / 2.0));
-
-        float[] coords = new float[numSegments * 6];
-        int     pos = 0;
-
-        for (int i=0; i<numSegments; i++)
-        {
-            double  angle = angleStart + i * angleIncrement;
-            // Calculate the control vector at this angle
-            double  dx = Math.cos(angle);
-            double  dy = Math.sin(angle);
-            // First control point
-            coords[pos++] = (float) (dx - controlLength * dy);
-            coords[pos++] = (float) (dy + controlLength * dx);
-            // Second control point
-            angle += angleIncrement;
-            dx = Math.cos(angle);
-            dy = Math.sin(angle);
-            coords[pos++] = (float) (dx + controlLength * dy);
-            coords[pos++] = (float) (dy - controlLength * dx);
-            // Endpoint of bezier
-            coords[pos++] = (float) dx;
-            coords[pos++] = (float) dy;
-        }
-        return coords;
-    }
-
-    private static double checkedArcCos(double val) {
-        return (val < -1.0) ? Math.PI : (val > 1.0) ? 0 : Math.acos(val);
+    private static void drawArc(Path p, float lastX, float lastY, float x, float y, float rx, float ry, float theta, int largeArc, int sweepArc) {
+        // todo - not implemented yet, may be very hard to do using Android drawing facilities.
     }
 
     private static NumberParse getNumberParseAttr(String name, Attributes attributes) {
@@ -1362,7 +1119,7 @@ public class SvgHelper {
         }
     }
 
-    private static class SVGHandler extends DefaultHandler implements SvgResult{
+    private static class SVGHandler extends DefaultHandler {
 
         private Canvas canvas;
         private Bitmap bitmap;
@@ -1507,35 +1264,8 @@ public class SvgHelper {
             }
         }
 
-        private boolean insideGiftRect = false;
-        private int insideGiftRectDepth = 0;
-        private List<WallpaperGiftPatternPosition> insideGiftRectPositions;
-        
-        
         @Override
         public void startElement(String namespaceURI, String localName, String qName, Attributes atts) {
-            if ("g".equals(qName) && !insideGiftRect) {
-                final String id = atts.getValue("id");
-                if ("GiftPatterns".equals(id)) {
-                    insideGiftRect = true;
-                    insideGiftRectDepth = 1;
-                    return;
-                }
-            } else if (insideGiftRect) {
-                insideGiftRectDepth++;
-                if ("rect".equals(qName)) {
-                    WallpaperGiftPatternPosition position = WallpaperGiftPatternPosition.create(atts, scale);
-                    if (position != null) {
-                        if (insideGiftRectPositions == null) {
-                            insideGiftRectPositions = new ArrayList<>();
-                        }
-                        insideGiftRectPositions.add(position);
-                    }
-                }
-                return;
-            }
-
-
             if (boundsMode && !localName.equals("style")) {
                 return;
             }
@@ -1562,7 +1292,6 @@ public class SvgHelper {
                         height = desiredHeight;
                     } else if (desiredWidth != 0 && desiredHeight != 0) {
                         scale = Math.min(desiredWidth / (float) width, desiredHeight / (float) height);
-                        // scale = Math.max(desiredWidth / (float) width, desiredHeight / (float) height);
                         width *= scale;
                         height *= scale;
                     }
@@ -1778,12 +1507,6 @@ public class SvgHelper {
 
         @Override
         public void endElement(String namespaceURI, String localName, String qName) {
-            if (insideGiftRect) {
-                insideGiftRectDepth--;
-                if (insideGiftRectDepth == 0) insideGiftRect = false;
-                return;
-            }
-            
             switch (localName) {
                 case "style":
                     if (styles != null) {
@@ -1818,19 +1541,9 @@ public class SvgHelper {
             return bitmap;
         }
 
-        public List<WallpaperGiftPatternPosition> getGiftPatternPositions() {
-            return insideGiftRectPositions;
-        }
-
         public SvgDrawable getDrawable() {
             return drawable;
         }
-    }
-
-    public interface SvgResult {
-        List<WallpaperGiftPatternPosition> getGiftPatternPositions();
-        Bitmap getBitmap();
-        SvgDrawable getDrawable();
     }
 
     private static final double[] pow10 = new double[128];
@@ -2223,24 +1936,5 @@ public class SvgHelper {
             FileLog.e(e);
         }
         return "";
-    }
-
-
-    // Split between commands: after ')' and before next command name (letter)
-    private static final Pattern SPLIT_BOUNDARY =
-        Pattern.compile("(?<=\\))\\s*(?=[A-Za-z])");
-
-    private static List<String> splitSvgTransforms(String input) {
-        if (input == null) return Collections.emptyList();
-        String trimmed = input.trim();
-        if (trimmed.isEmpty()) return Collections.emptyList();
-
-        String[] parts = SPLIT_BOUNDARY.split(trimmed);
-        List<String> out = new ArrayList<>(parts.length);
-        for (String p : parts) {
-            String s = p.trim();
-            if (!s.isEmpty()) out.add(s);
-        }
-        return out;
     }
 }

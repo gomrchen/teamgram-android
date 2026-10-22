@@ -3,6 +3,7 @@ package org.telegram.ui.Stars;
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.LocaleController.getString;
 
+import android.app.Dialog;
 import android.content.Context;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
@@ -14,12 +15,19 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.exoplayer2.scheduler.RequirementsWatcher;
+
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
+import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.BottomSheetWithRecyclerListView;
+import org.telegram.ui.Components.DialogsBotsAdapter;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.LinkSpanDrawable;
 import org.telegram.ui.Components.Premium.GLIcon.GLIconRenderer;
@@ -31,7 +39,9 @@ import org.telegram.ui.Components.StarAppsSheet;
 import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
 import org.telegram.ui.Components.UniversalRecyclerView;
+import org.telegram.ui.Gifts.GiftSheet;
 import org.telegram.ui.Stories.recorder.ButtonWithCounterView;
+import org.telegram.ui.Stories.recorder.HintView2;
 
 import java.util.ArrayList;
 
@@ -132,7 +142,7 @@ public class ExplainStarsSheet extends BottomSheetWithRecyclerListView {
         public final TextView titleView;
         public final LinkSpanDrawable.LinksTextView subtitleView;
 
-        public FeatureCell(Context context, int style, Theme.ResourcesProvider resourcesProvider) {
+        public FeatureCell(Context context, int style) {
             super(context);
 
             setOrientation(HORIZONTAL);
@@ -150,14 +160,14 @@ public class ExplainStarsSheet extends BottomSheetWithRecyclerListView {
             titleView = new LinkSpanDrawable.LinksTextView(context);
             titleView.setTypeface(AndroidUtilities.bold());
             titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-            titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText, resourcesProvider));
-            titleView.setLinkTextColor(Theme.getColor(Theme.key_chat_messageLinkIn, resourcesProvider));
+            titleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
+            titleView.setLinkTextColor(Theme.getColor(Theme.key_chat_messageLinkIn));
             textLayout.addView(titleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.FILL_HORIZONTAL, 0, 0, 0, 3));
 
             subtitleView = new LinkSpanDrawable.LinksTextView(context);
             subtitleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-            subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, resourcesProvider));
-            subtitleView.setLinkTextColor(Theme.getColor(Theme.key_chat_messageLinkIn, resourcesProvider));
+            subtitleView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2));
+            subtitleView.setLinkTextColor(Theme.getColor(Theme.key_chat_messageLinkIn));
             textLayout.addView(subtitleView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.FILL_HORIZONTAL));
 
             addView(textLayout, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 1f, Gravity.TOP | Gravity.FILL_HORIZONTAL, 0, 0, 0, 0));
@@ -173,12 +183,12 @@ public class ExplainStarsSheet extends BottomSheetWithRecyclerListView {
             static { setup(new Factory()); }
 
             @Override
-            public FeatureCell createView(Context context, RecyclerListView listView, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
-                return new FeatureCell(context, 0, resourcesProvider);
+            public FeatureCell createView(Context context, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
+                return new FeatureCell(context, 0);
             }
 
             @Override
-            public void bindView(View view, UItem item, boolean divider, UniversalAdapter adapter, UniversalRecyclerView listView) {
+            public void bindView(View view, UItem item, boolean divider) {
                 ((FeatureCell) view).set(
                     item.intValue, item.text, item.subtext
                 );

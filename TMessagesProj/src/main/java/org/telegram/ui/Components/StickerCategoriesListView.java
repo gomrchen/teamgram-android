@@ -617,14 +617,6 @@ public class StickerCategoriesListView extends RecyclerListView {
 
     static int loadedCategoryIcons = 0;
 
-    public boolean isGlassDesign;
-
-    private int getGlassIconColor(float alpha) {
-        return ColorUtils.setAlphaComponent(
-                Theme.getColor(Theme.key_glass_defaultIcon, resourcesProvider),
-                (int) (255 * alpha));
-    }
-
     private class CategoryButton extends RLottieImageView {
 
         private int imageColor;
@@ -635,7 +627,7 @@ public class StickerCategoriesListView extends RecyclerListView {
         public CategoryButton(Context context) {
             super(context);
 
-            setImageColor(isGlassDesign ? getGlassIconColor(0.4f) : getThemedColor(Theme.key_chat_emojiPanelIcon));
+            setImageColor(getThemedColor(Theme.key_chat_emojiPanelIcon));
             setScaleType(ScaleType.CENTER);
 
             setLayerNum(layerNum);
@@ -738,17 +730,13 @@ public class StickerCategoriesListView extends RecyclerListView {
 
         private void updateSelectedT(float t) {
             selectedT = t;
-            if (isGlassDesign) {
-                setImageColor(getGlassIconColor(AndroidUtilities.lerp(0.4f, 0.8f, selectedT)));
-            } else {
-                setImageColor(
-                        ColorUtils.blendARGB(
-                                getThemedColor(Theme.key_chat_emojiPanelIcon),
-                                getThemedColor(Theme.key_chat_emojiPanelIconSelected),
-                                selectedT
-                        )
-                );
-            }
+            setImageColor(
+                ColorUtils.blendARGB(
+                    getThemedColor(Theme.key_chat_emojiPanelIcon),
+                    getThemedColor(Theme.key_chat_emojiPanelIconSelected),
+                    selectedT
+                )
+            );
             invalidate();
         }
 

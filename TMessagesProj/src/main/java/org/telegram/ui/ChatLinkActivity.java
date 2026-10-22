@@ -8,9 +8,6 @@
 
 package org.telegram.ui;
 
-import static org.telegram.messenger.AndroidUtilities.dp;
-import static org.telegram.messenger.LocaleController.getString;
-
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
@@ -90,7 +87,6 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
     private int removeChatRow;
     private int detailRow;
     private int joinToSendRow;
-    private int joinToSendInfoRow;
     private int rowCount;
 
     private boolean searchWas;
@@ -110,7 +106,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
         public EmptyView(Context context) {
             super(context);
 
-            setPadding(0, dp(12), 0, dp(12));
+            setPadding(0, AndroidUtilities.dp(12), 0, AndroidUtilities.dp(12));
             setOrientation(LinearLayout.VERTICAL);
 
             stickerView = new BackupImageView(context);
@@ -123,7 +119,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
                     "c-2.4-10.6-21.1-10.6-28.6-1c-1.3,0.3-2.9,0.8-4.5,1.9c-5.2-0.9-10.9,0.1-14.1,4.4c-6.9,3-9.5,10.4-7.8,17c-0.9,1.8-1.1,4-0.8,6.3" +
                     "c-1.6,1.2-2.3,3.1-2,4.9c0.1,0.6,10.4,56.6,11.2,62c0.3,1.8,1.5,3.2,3.1,3.9c8.7,3.4,12,3.8,30.1,9.4c2.7,0.8,2.4,0.8,6.7-0.1" +
                     "c16.4-3.5,30.2-8.9,30.8-9.2c1.6-0.6,2.7-2,3.1-3.7c0.1-0.4,6.8-36.5,10-53.2c0.9,4.2,3.3,7.3,7.4,7.5c1.2,7.8,4.4,14.5,9.5,19.9" +
-                    "c16.4,17.3,44.9,15.7,64.9,16.1c38.3,0.8,74.5,1.5,84.4-24.4C488.9,453.5,491.3,421.3,476.1,397.4z", dp(104), dp(104));
+                    "c16.4,17.3,44.9,15.7,64.9,16.1c38.3,0.8,74.5,1.5,84.4-24.4C488.9,453.5,491.3,421.3,476.1,397.4z", AndroidUtilities.dp(104), AndroidUtilities.dp(104));
             stickerView.setImageDrawable(drawable);
             addView(stickerView, LayoutHelper.createLinear(104, 104, Gravity.CENTER_HORIZONTAL | Gravity.TOP, 0, 2, 0, 0));
         }
@@ -189,7 +185,6 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
         removeChatRow = -1;
         detailRow = -1;
         joinToSendRow = -1;
-        joinToSendInfoRow = -1;
 
         helpRow = rowCount++;
         if (isChannel) {
@@ -305,7 +300,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
 
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
-        actionBar.setTitle(getString(R.string.Discussion));
+        actionBar.setTitle(LocaleController.getString(R.string.Discussion));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -316,7 +311,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
         });
 
         ActionBarMenu menu = actionBar.createMenu();
-        searchItem = menu.addItem(search_button, R.drawable.outline_header_search).setIsSearchField(true).setActionBarMenuItemSearchListener(new ActionBarMenuItem.ActionBarMenuItemSearchListener() {
+        searchItem = menu.addItem(search_button, R.drawable.ic_ab_search).setIsSearchField(true).setActionBarMenuItemSearchListener(new ActionBarMenuItem.ActionBarMenuItemSearchListener() {
             @Override
             public void onSearchExpand() {
                 searching = true;
@@ -359,7 +354,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
                 searchAdapter.searchDialogs(text);
             }
         });
-        searchItem.setSearchFieldHint(getString(R.string.Search));
+        searchItem.setSearchFieldHint(LocaleController.getString(R.string.Search));
         searchAdapter = new SearchAdapter(context);
 
         fragmentView = new FrameLayout(context);
@@ -369,17 +364,15 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
 
         emptyView = new EmptyTextProgressView(context);
         emptyView.showProgress();
-        emptyView.setText(getString(R.string.NoResult));
+        emptyView.setText(LocaleController.getString(R.string.NoResult));
         frameLayout.addView(emptyView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
         listView = new RecyclerListView(context);
-        listView.setSections();
         listView.setEmptyView(emptyView);
         listView.setLayoutManager(new LinearLayoutManager(context, LinearLayoutManager.VERTICAL, false));
         listView.setAdapter(listViewAdapter = new ListAdapter(context));
         listView.setVerticalScrollbarPosition(LocaleController.isRTL ? RecyclerListView.SCROLLBAR_POSITION_LEFT : RecyclerListView.SCROLLBAR_POSITION_RIGHT);
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-        actionBar.setAdaptiveBackground(listView);
 
         listView.setOnItemClickListener((view, position) -> {
             if (getParentActivity() == null) {
@@ -441,15 +434,15 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
                     String title;
                     String message;
                     if (isChannel) {
-                        title = getString(R.string.DiscussionUnlinkGroup);
+                        title = LocaleController.getString(R.string.DiscussionUnlinkGroup);
                         message = LocaleController.formatString("DiscussionUnlinkChannelAlert", R.string.DiscussionUnlinkChannelAlert, c.title);
                     } else {
-                        title = getString(R.string.DiscussionUnlinkChannel);
+                        title = LocaleController.getString(R.string.DiscussionUnlinkChannel);
                         message = LocaleController.formatString("DiscussionUnlinkGroupAlert", R.string.DiscussionUnlinkGroupAlert, c.title);
                     }
                     builder.setTitle(title);
                     builder.setMessage(AndroidUtilities.replaceTags(message));
-                    builder.setPositiveButton(getString(R.string.DiscussionUnlink), (dialogInterface, i) -> {
+                    builder.setPositiveButton(LocaleController.getString(R.string.DiscussionUnlink), (dialogInterface, i) -> {
                         if (!isChannel || info.linked_chat_id != 0) {
                             final AlertDialog[] progressDialog = new AlertDialog[]{new AlertDialog(getParentActivity(), AlertDialog.ALERT_TYPE_SPINNER)};
                             TLRPC.TL_channels_setDiscussionGroup req = new TLRPC.TL_channels_setDiscussionGroup();
@@ -483,7 +476,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
                             }, 500);
                         }
                     });
-                    builder.setNegativeButton(getString(R.string.Cancel), null);
+                    builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
                     AlertDialog dialog = builder.create();
                     showDialog(dialog);
                     TextView button = (TextView) dialog.getButton(DialogInterface.BUTTON_POSITIVE);
@@ -532,7 +525,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
             }
         }
         if (chatFull.hidden_prehistory) {
-            message += "\n\n" + getString(R.string.DiscussionLinkGroupAlertHistory);
+            message += "\n\n" + LocaleController.getString(R.string.DiscussionLinkGroupAlertHistory);
         }
         messageTextView.setText(AndroidUtilities.replaceTags(message));
 
@@ -540,10 +533,10 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
         builder.setView(frameLayout2);
 
         AvatarDrawable avatarDrawable = new AvatarDrawable();
-        avatarDrawable.setTextSize(dp(12));
+        avatarDrawable.setTextSize(AndroidUtilities.dp(12));
 
         BackupImageView imageView = new BackupImageView(getParentActivity());
-        imageView.setRoundRadius(dp(20));
+        imageView.setRoundRadius(AndroidUtilities.dp(20));
         frameLayout2.addView(imageView, LayoutHelper.createFrame(40, 40, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 22, 5, 22, 0));
 
         TextView textView = new TextView(getParentActivity());
@@ -561,13 +554,13 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
         frameLayout2.addView(messageTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.RIGHT : Gravity.LEFT) | Gravity.TOP, 24, 57, 24, 9));
         avatarDrawable.setInfo(currentAccount, chat);
         imageView.setForUserOrChat(chat, avatarDrawable);
-        builder.setPositiveButton(getString(R.string.DiscussionLinkGroup), (dialogInterface, i) -> {
+        builder.setPositiveButton(LocaleController.getString(R.string.DiscussionLinkGroup), (dialogInterface, i) -> {
             if (chatFull.hidden_prehistory) {
                 getMessagesController().toggleChannelInvitesHistory(chat.id, false);
             }
             linkChat(chat, null);
         });
-        builder.setNegativeButton(getString(R.string.Cancel), null);
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         showDialog(builder.create());
     }
 
@@ -643,8 +636,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
                 chats = res.chats;
                 Iterator<TLRPC.Chat> i = chats.iterator();
                 while (i.hasNext()) {
-                    TLRPC.Chat chat = i.next();
-                    if (ChatObject.isForum(chat) || ChatObject.isMonoForum(chat))
+                    if (ChatObject.isForum(i.next()))
                         i.remove();
                 }
             }
@@ -685,7 +677,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
                         messageTextView.setText(AndroidUtilities.replaceTags(LocaleController.formatString("DiscussionChannelGroupSetHelp2", R.string.DiscussionChannelGroupSetHelp2, chat.title)));
                     }
                 } else {
-                    messageTextView.setText(getString(R.string.DiscussionChannelHelp3));
+                    messageTextView.setText(LocaleController.getString(R.string.DiscussionChannelHelp3));
                 }
             } else {
                 TLRPC.Chat chat = getMessagesController().getChat(info.linked_chat_id);
@@ -896,12 +888,15 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
             switch (viewType) {
                 case 0:
                     view = new ManageChatUserCell(mContext, 6, 2, false);
+                    view.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
                     break;
                 case 1:
                     view = new TextInfoPrivacyCell(mContext);
+                    view.setBackgroundDrawable(Theme.getThemedDrawableByKey(mContext, R.drawable.greydivider_bottom, Theme.key_windowBackgroundGrayShadow));
                     break;
                 case 2:
                     view = new ManageChatTextCell(mContext);
+                    view.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite));
                     break;
                 case 4:
                     final TLRPC.Chat chat = isChannel ? chats.get(0) : currentChat;
@@ -983,7 +978,6 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
                 case 3:
                 default:
                     view = new HintInnerCell(mContext);
-                    view.setTag(RecyclerListView.TAG_NOT_SECTION);
                     break;
             }
             return new RecyclerListView.Holder(view);
@@ -1001,13 +995,11 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
                     break;
                 case 1:
                     TextInfoPrivacyCell privacyCell = (TextInfoPrivacyCell) holder.itemView;
-                    if (position == joinToSendInfoRow) {
-                        privacyCell.setText(getString(R.string.ChannelSettingsJoinRequestInfo));
-                    } else if (position == detailRow) {
+                    if (position == detailRow) {
                         if (isChannel) {
-                            privacyCell.setText(getString(R.string.DiscussionChannelHelp2));
+                            privacyCell.setText(LocaleController.getString(R.string.DiscussionChannelHelp2));
                         } else {
-                            privacyCell.setText(getString(R.string.DiscussionGroupHelp2));
+                            privacyCell.setText(LocaleController.getString(R.string.DiscussionGroupHelp2));
                         }
                     }
                     break;
@@ -1016,14 +1008,14 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
                     if (isChannel) {
                         if (info.linked_chat_id != 0) {
                             actionCell.setColors(Theme.key_text_RedRegular, Theme.key_text_RedRegular);
-                            actionCell.setText(getString(R.string.DiscussionUnlinkGroup), null, R.drawable.msg_remove, false);
+                            actionCell.setText(LocaleController.getString(R.string.DiscussionUnlinkGroup), null, R.drawable.msg_remove, false);
                         } else {
                             actionCell.setColors(Theme.key_windowBackgroundWhiteBlueIcon, Theme.key_windowBackgroundWhiteBlueButton);
-                            actionCell.setText(getString(R.string.DiscussionCreateGroup), null, R.drawable.msg_groups, true);
+                            actionCell.setText(LocaleController.getString(R.string.DiscussionCreateGroup), null, R.drawable.msg_groups, true);
                         }
                     } else {
                         actionCell.setColors(Theme.key_text_RedRegular, Theme.key_text_RedRegular);
-                        actionCell.setText(getString(R.string.DiscussionUnlinkChannel), null, R.drawable.msg_remove, false);
+                        actionCell.setText(LocaleController.getString(R.string.DiscussionUnlinkChannel), null, R.drawable.msg_remove, false);
                     }
                     break;
             }
@@ -1071,7 +1063,7 @@ public class ChatLinkActivity extends BaseFragment implements NotificationCenter
         themeDescriptions.add(new ThemeDescription(fragmentView, ThemeDescription.FLAG_BACKGROUND | ThemeDescription.FLAG_CHECKTAG, null, null, null, null, Theme.key_windowBackgroundGray));
         themeDescriptions.add(new ThemeDescription(fragmentView, ThemeDescription.FLAG_BACKGROUND | ThemeDescription.FLAG_CHECKTAG, null, null, null, null, Theme.key_windowBackgroundWhite));
 
-//        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_actionBarDefault));
+        themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_actionBarDefault));
         themeDescriptions.add(new ThemeDescription(listView, ThemeDescription.FLAG_LISTGLOWCOLOR, null, null, null, null, Theme.key_actionBarDefault));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_actionBarDefaultIcon));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_TITLECOLOR, null, null, null, null, Theme.key_actionBarDefaultTitle));

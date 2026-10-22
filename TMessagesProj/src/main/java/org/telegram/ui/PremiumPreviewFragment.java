@@ -15,14 +15,13 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
-import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
-import android.graphics.RectF;
 import android.graphics.Shader;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
@@ -37,15 +36,12 @@ import android.view.HapticFeedbackConstants;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewOutlineProvider;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.core.graphics.ColorUtils;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -73,6 +69,7 @@ import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.tl.TL_account;
 import org.telegram.tgnet.tl.TL_stars;
+import org.telegram.ui.Stars.StarsController;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
@@ -96,6 +93,7 @@ import org.telegram.ui.Cells.TextInfoPrivacyCell;
 import org.telegram.ui.Components.AlertsCreator;
 import org.telegram.ui.Components.AnimatedEmojiDrawable;
 import org.telegram.ui.Components.BulletinFactory;
+import org.telegram.ui.Components.CombinedDrawable;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.FillLastLinearLayoutManager;
 import org.telegram.ui.Components.LayoutHelper;
@@ -111,27 +109,14 @@ import org.telegram.ui.Components.Premium.PremiumNotAvailableBottomSheet;
 import org.telegram.ui.Components.Premium.PremiumTierCell;
 import org.telegram.ui.Components.Premium.StarParticlesView;
 import org.telegram.ui.Components.RecyclerListView;
-import org.telegram.ui.Components.ScaleStateListAnimator;
 import org.telegram.ui.Components.SimpleThemeDescription;
 import org.telegram.ui.Components.TextStyleSpan;
-import org.telegram.ui.Components.TypefaceSpan;
 import org.telegram.ui.Components.URLSpanBotCommand;
 import org.telegram.ui.Components.URLSpanBrowser;
 import org.telegram.ui.Components.URLSpanMono;
 import org.telegram.ui.Components.URLSpanNoUnderline;
 import org.telegram.ui.Components.URLSpanReplacement;
 import org.telegram.ui.Components.URLSpanUserMention;
-import org.telegram.ui.Components.blur3.BlurredBackgroundDrawableViewFactory;
-import org.telegram.ui.Components.blur3.BlurredBackgroundWithFadeDrawable;
-import org.telegram.ui.Components.blur3.DownscaleScrollableNoiseSuppressor;
-import org.telegram.ui.Components.blur3.capture.IBlur3Capture;
-import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
-import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawableSource;
-import org.telegram.ui.Components.blur3.drawable.color.impl.BlurredBackgroundProviderImpl;
-import org.telegram.ui.Components.blur3.source.BlurredBackgroundSource;
-import org.telegram.ui.Components.blur3.source.BlurredBackgroundSourceRenderNode;
-import org.telegram.ui.Components.blur3.utils.Blur3Utils;
-import org.telegram.ui.Components.chat.ViewPositionWatcher;
 import org.telegram.ui.Stories.recorder.HintView2;
 
 import java.util.ArrayList;
@@ -165,12 +150,11 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
     int privacyRow;
     int lastPaddingRow;
     int showAdsHeaderRow;
-    @Keep
     int showAdsRow;
     int showAdsInfoRow;
     Drawable shadowDrawable;
     private FrameLayout buttonContainer;
-    private FrameLayout buttonContainerInternal;
+    private View buttonDivider;
 
     PremiumFeatureCell dummyCell;
     PremiumTierCell dummyTierCell;
@@ -179,8 +163,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
 
     FillLastLinearLayoutManager layoutManager;
     //icons
-    Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    Shader shader, strokeShader;
+    Shader shader;
     Matrix matrix = new Matrix();
     Paint gradientPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     BackgroundView backgroundView;
@@ -229,9 +212,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
     public final static int PREMIUM_FEATURE_BUSINESS_INTRO = 36;
     public final static int PREMIUM_FEATURE_BUSINESS_CHAT_LINKS = 37;
     public final static int PREMIUM_FEATURE_MESSAGE_EFFECTS = 38;
-    public final static int PREMIUM_FEATURE_TODO = 39;
-    public final static int FEATURE_GIFTS = 40;
-    public final static int PREMIUM_FEATURE_SHARING_DISABLE = 41;
 
     private int statusBarHeight;
     private int firstViewHeight;
@@ -244,7 +224,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
     private PremiumButtonView premiumButtonView;
     float totalProgress;
     private final int type;
-    private final boolean whiteBackground;
+    private boolean whiteBackground;
     private String source;
 
     private boolean selectAnnualByDefault;
@@ -289,10 +269,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 return PREMIUM_FEATURE_TRANSLATIONS;
             case "effects":
                 return PREMIUM_FEATURE_MESSAGE_EFFECTS;
-            case "todo":
-                return PREMIUM_FEATURE_TODO;
-            case "gifts":
-                return FEATURE_GIFTS;
 
             case "stories":
                 return PREMIUM_FEATURE_STORIES;
@@ -325,8 +301,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 return PREMIUM_FEATURE_MESSAGE_PRIVACY;
             case "folder_tags":
                 return PREMIUM_FEATURE_FOLDER_TAGS;
-            case "pm_noforwards":
-                return PREMIUM_FEATURE_SHARING_DISABLE;
 
             case "business":
                 return PREMIUM_FEATURE_BUSINESS;
@@ -382,10 +356,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 return "translations";
             case PREMIUM_FEATURE_MESSAGE_EFFECTS:
                 return "effects";
-            case PREMIUM_FEATURE_TODO:
-                return "todo";
-            case FEATURE_GIFTS:
-                return "gifts";
             case PREMIUM_FEATURE_STORIES:
                 return "stories";
             case PREMIUM_FEATURE_STORIES_STEALTH_MODE:
@@ -416,8 +386,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 return "message_privacy";
             case PREMIUM_FEATURE_FOLDER_TAGS:
                 return "folder_tags";
-            case PREMIUM_FEATURE_SHARING_DISABLE:
-                return "pm_noforwards";
 
             case PREMIUM_FEATURE_BUSINESS:
                 return "business";
@@ -455,38 +423,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
         this.type = type;
         whiteBackground = !Theme.isCurrentThemeDark() && type == FEATURES_BUSINESS;
         this.source = source;
-
-        iBlur3Source = new BlurredBackgroundSource() {
-            @Override
-            public BlurredBackgroundDrawable createDrawable() {
-                return new BlurredBackgroundDrawableSource(this);
-            }
-
-            private final Paint p = new Paint();
-
-            @Override
-            public void draw(Canvas canvas, float left, float top, float right, float bottom) {
-                if (whiteBackground) {
-                    p.setColor(getThemedColor(Theme.key_windowBackgroundGray));
-                    canvas.drawRect(left, top, right, bottom, p);
-                } else {
-                    gradientTools.gradientMatrix(0, 0, contentView.getMeasuredWidth(), contentView.getMeasuredHeight(), -contentView.getMeasuredWidth() * 0.1f * progress, 0);
-                    canvas.drawRect(left, top, right, bottom, gradientTools.paint);
-                }
-            }
-        };
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            scrollableViewNoiseSuppressor = new DownscaleScrollableNoiseSuppressor(true, true);
-            iBlur3SourceGlassFrosted = new BlurredBackgroundSourceRenderNode(null);
-            iBlur3SourceGlassFrosted.setScrollableNoiseSuppressor(scrollableViewNoiseSuppressor, DownscaleScrollableNoiseSuppressor.DRAW_FROSTED_GLASS);
-            iBlur3SourceGlassFrosted.setUnderSource(iBlur3Source);
-            iBlur3Factory = new BlurredBackgroundDrawableViewFactory(iBlur3SourceGlassFrosted);
-        } else {
-            scrollableViewNoiseSuppressor = null;
-            iBlur3SourceGlassFrosted = null;
-            iBlur3Factory = new BlurredBackgroundDrawableViewFactory(iBlur3Source);
-        }
-        iBlur3FactoryBg = new BlurredBackgroundDrawableViewFactory(iBlur3Source);
     }
 
     {
@@ -508,13 +444,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
     @SuppressLint("NotifyDataSetChanged")
     @Override
     public View createView(Context context) {
-        iBlur3Capture = (canvas, position) -> Blur3Utils.captureRelativeParent(listView, canvas, position, listView, contentView);
-        /**/
-
         hasOwnBackground = true;
-        strokeShader = new LinearGradient(0, 0, 0, dp(28), new int[] { 0x4dffffff, 0, 0x1affffff }, new float[] { 0, 0.5f, 1 }, Shader.TileMode.CLAMP);
-        strokePaint.setShader(strokeShader);
-        strokePaint.setStyle(Paint.Style.STROKE);
         shader = new LinearGradient(
             0, 0, 0, 100,
             new int[]{
@@ -560,14 +490,15 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
         shadowDrawable.setColorFilter(new PorterDuffColorFilter(getThemedColor(Theme.key_dialogBackground), PorterDuff.Mode.MULTIPLY));
         shadowDrawable.getPadding(padding);
 
-        statusBarHeight = AndroidUtilities.isTablet() ? 0 : AndroidUtilities.statusBarHeight;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            statusBarHeight = AndroidUtilities.isTablet() ? 0 : AndroidUtilities.statusBarHeight;
+        }
 
         contentView = new FrameLayout(context) {
 
             int lastSize;
             boolean iconInterceptedTouch;
             boolean listInterceptedTouch;
-            boolean ignoreLayout;
 
             @Override
             public boolean dispatchTouchEvent(MotionEvent ev) {
@@ -610,15 +541,11 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 } else {
                     isLandscapeMode = false;
                 }
-                statusBarHeight = AndroidUtilities.isTablet() ? 0 : AndroidUtilities.statusBarHeight;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    statusBarHeight = AndroidUtilities.isTablet() ? 0 : AndroidUtilities.statusBarHeight;
+                }
                 backgroundView.measure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
                 particlesView.getLayoutParams().height = backgroundView.getMeasuredHeight();
-                if (buttonContainer != null) {
-                    ignoreLayout = true;
-                    buttonContainer.setPadding(0, dp(14), 0, AndroidUtilities.navigationBarHeight);
-                    ignoreLayout = false;
-                }
-
                 int buttonHeight = (buttonContainer == null || buttonContainer.getVisibility() == View.GONE ? 0 : dp(68));
                 layoutManager.setAdditionalHeight(buttonHeight + statusBarHeight - dp(16));
                 layoutManager.setMinimumLastViewHeight(buttonHeight);
@@ -627,14 +554,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 if (lastSize != size) {
                     updateBackgroundImage();
                 }
-            }
-
-            @Override
-            public void requestLayout() {
-                if (ignoreLayout) {
-                    return;
-                }
-                super.requestLayout();
             }
 
             @Override
@@ -655,11 +574,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
             private final Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
             @Override
-            protected void dispatchDraw(@NonNull Canvas canvas) {
-                if (Build.VERSION.SDK_INT >= 31 && scrollableViewNoiseSuppressor != null) {
-                    blur3_InvalidateBlur();
-                }
-
+            protected void dispatchDraw(Canvas canvas) {
                 if (!isDialogVisible) {
                     if (inc) {
                         progress += 16f / 1000f;
@@ -701,10 +616,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 if (oldProgress != progressToFull) {
                     listView.invalidate();
                 }
-                float fromTranslation = currentYOffset
-                    - (actionBar.getMeasuredHeight() + backgroundView.getMeasuredHeight() - statusBarHeight)
-                    + dp(backgroundView.tierListView.getVisibility() == VISIBLE ? 24 : 16)
-                    + dp(24);
+                float fromTranslation = currentYOffset - (actionBar.getMeasuredHeight() + backgroundView.getMeasuredHeight() - statusBarHeight) + dp(backgroundView.tierListView.getVisibility() == VISIBLE ? 24 : 16);
                 float toTranslation = ((actionBar.getMeasuredHeight() - statusBarHeight - backgroundView.titleView.getMeasuredHeight()) / 2f) + statusBarHeight - backgroundView.getTop() - backgroundView.titleView.getTop();
 
                 float translationsY = Math.max(toTranslation, fromTranslation);
@@ -731,50 +643,44 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
 
                 if (!isDialogVisible) {
                     invalidate();
-                    buttonContainerInternal.invalidate();
-                    buttonContainer.invalidate();
                 }
                 gradientTools.gradientMatrix(0, 0, getMeasuredWidth(), getMeasuredHeight(), -getMeasuredWidth() * 0.1f * progress, 0);
                 if (whiteBackground) {
-                    backgroundPaint.setColor(getThemedColor(Theme.key_windowBackgroundGray));
-                    canvas.drawRect(0, 0, getMeasuredWidth(), getMeasuredHeight(), backgroundPaint);
-                    if (progressToFull > 0 && actionBar != null) {
-                        backgroundPaint.setColor(ColorUtils.blendARGB(getThemedColor(Theme.key_windowBackgroundGray), getThemedColor(Theme.key_windowBackgroundWhite), progressToFull));
-                        canvas.drawRect(0, 0, getMeasuredWidth(), actionBar.getHeight(), backgroundPaint);
-                    }
+                    backgroundPaint.setColor(ColorUtils.blendARGB(getThemedColor(Theme.key_windowBackgroundGray), getThemedColor(Theme.key_windowBackgroundWhite), progressToFull));
+                    canvas.drawRect(0, 0, getMeasuredWidth(), currentYOffset + dp(20), backgroundPaint);
                 } else {
-                    canvas.drawRect(0, 0, getMeasuredWidth(), getMeasuredHeight(), gradientTools.paint);
+                    canvas.drawRect(0, 0, getMeasuredWidth(), currentYOffset + dp(20), gradientTools.paint);
                 }
 
                 super.dispatchDraw(canvas);
-
-                if (buttonContainer.getVisibility() != VISIBLE) {
-                    navbarProtectionDrawable.setFadeHeight(AndroidUtilities.navigationBarHeight, false);
-                    navbarProtectionDrawable.setBounds(0, getHeight() - AndroidUtilities.navigationBarHeight, getWidth(), getHeight());
-                    navbarProtectionDrawable.draw(canvas);
-                }
 
                 if (parentLayout != null && whiteBackground) {
                     parentLayout.drawHeaderShadow(canvas, (int) (0xFF * progressToFull), actionBar.getBottom());
                 }
             }
-        };
-        iBlur3Factory.setSourceRootView(new ViewPositionWatcher(contentView), contentView);
-        iBlur3FactoryBg.setSourceRootView(new ViewPositionWatcher(contentView), contentView);
 
-        listView = new RecyclerListView(context);
-        listView.setClipToOutline(true);
-        listView.setOutlineProvider(new ViewOutlineProvider() {
             @Override
-            public void getOutline(View view, Outline outline) {
-                outline.setRoundRect(dp(12), actionBar.getBottom() + dp(12), view.getWidth() - dp(12), view.getMeasuredHeight() + dp(16), dp(16));
+            protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+                if (child == listView) {
+                    canvas.save();
+                    canvas.clipRect(0, actionBar.getBottom(), getMeasuredWidth(), getMeasuredHeight());
+                    super.drawChild(canvas, child, drawingTime);
+                    canvas.restore();
+                    return true;
+                }
+                return super.drawChild(canvas, child, drawingTime);
             }
-        });
-        listView.addEdgeEffectListener(() -> listView.postOnAnimation(this::blur3_InvalidateBlur));
-        listView.setCaptureSectionsDecoratorAllowed(true);
-        listView.setSections(true);
-        listView.setClipToPadding(false);
-        listView.setPadding(0, AndroidUtilities.statusBarHeight + ActionBar.getCurrentActionBarHeight(), 0, dp(48) + AndroidUtilities.navigationBarHeight);
+        };
+        contentView.setFitsSystemWindows(true);
+
+        listView = new RecyclerListView(context) {
+            @Override
+            public void onDraw(Canvas canvas) {
+                shadowDrawable.setBounds((int) (-padding.left - dp(16) * progressToFull), currentYOffset - padding.top - dp(16), (int) (getMeasuredWidth() + padding.right + dp(16) * progressToFull), getMeasuredHeight());
+                shadowDrawable.draw(canvas);
+                super.onDraw(canvas);
+            }
+        };
         listView.setLayoutManager(layoutManager = new FillLastLinearLayoutManager(context, dp(68) + statusBarHeight - dp(16), listView));
         layoutManager.setFixedLastItemHeight();
 
@@ -798,21 +704,23 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                         }
                     }
                 }
+                checkButtonDivider();
             }
 
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
                 contentView.invalidate();
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && scrollableViewNoiseSuppressor != null) {
-                    scrollableViewNoiseSuppressor.onScrolled(dx, dy);
-                    blur3_InvalidateBlur();
-                }
+                checkButtonDivider();
             }
         });
 
-        backgroundView = new BackgroundView(context);
+        backgroundView = new BackgroundView(context) {
+            @Override
+            public boolean onInterceptTouchEvent(MotionEvent ev) {
+                return true;
+            }
+        };
         particlesView = new StarParticlesView(context);
         particlesView.setClipWithGradient();
         if (type == FEATURES_BUSINESS) {
@@ -920,39 +828,28 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 showDialog(new PremiumFeatureBottomSheet(PremiumPreviewFragment.this, getContext(), currentAccount, type == FEATURES_BUSINESS, cell.data.type, false, tier));
             }
         });
-        contentView.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL, 0, 0, 0, -48));
+        contentView.addView(listView);
 
-        buttonContainerInternal = new FrameLayout(context);
         premiumButtonView = new PremiumButtonView(context, false, getResourceProvider());
-        premiumButtonView.setNonClickable();
-
         updateButtonText(false);
         buttonContainer = new FrameLayout(context);
 
-        buttonContainerInternal.setPadding(dp(12), dp(12), dp(12), dp(12));
-        buttonContainerInternal.addView(premiumButtonView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-        buttonContainerInternal.setBackground(iBlur3Factory.create(buttonContainerInternal)
-            .setColorProvider(BlurredBackgroundProviderImpl.premiumButton(resourceProvider))
-            .setRadius(dp(28))
-            .setPadding(dp(8)));
-        ScaleStateListAnimator.apply(buttonContainerInternal, 0.02f, 1.5f);
-        buttonContainer.addView(buttonContainerInternal, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48 + 12 + 12, Gravity.BOTTOM, 4, 0, 4, 0));
+        buttonDivider = new View(context);
+        buttonDivider.setBackgroundColor(Theme.getColor(Theme.key_divider));
+        buttonContainer.addView(buttonDivider, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 1));
+        buttonDivider.getLayoutParams().height = 1;
+        AndroidUtilities.updateViewVisibilityAnimated(buttonDivider, true, 1f, false);
 
-        BlurredBackgroundWithFadeDrawable fade = new BlurredBackgroundWithFadeDrawable(iBlur3Factory.create(buttonContainer));
-        fade.setFadeHeight(dp(40), false);
-
-        navbarProtectionDrawable = new BlurredBackgroundWithFadeDrawable(iBlur3Factory.create(contentView));
-        buttonContainer.setBackground(fade);
-
+        buttonContainer.addView(premiumButtonView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.CENTER_VERTICAL, 16, 0, 16, 0));
+        buttonContainer.setBackgroundColor(getThemedColor(Theme.key_dialogBackground));
         if (getUserConfig().isClientActivated()) {
-            contentView.addView(buttonContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM));
+            contentView.addView(buttonContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 68, Gravity.BOTTOM));
         }
 
         fragmentView = contentView;
         actionBar.setBackground(null);
         actionBar.setCastShadows(false);
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
-        actionBar.setAddToContainer(false);
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
@@ -962,7 +859,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
             }
         });
         actionBar.setForceSkipTouches(true);
-        contentView.addView(actionBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP));
 
         updateColors();
         updateRows();
@@ -1012,8 +908,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
         premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_LAST_SEEN, R.drawable.menu_premium_seen, getString(R.string.PremiumPreviewLastSeen), getString(R.string.PremiumPreviewLastSeenDescription)));
         premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_BUSINESS, R.drawable.filled_premium_business, getString(R.string.TelegramBusiness), getString(R.string.PremiumPreviewBusinessDescription)));
         premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_MESSAGE_EFFECTS, R.drawable.menu_premium_effects, getString(R.string.PremiumPreviewEffects), getString(R.string.PremiumPreviewEffectsDescription)));
-        premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_TODO, R.drawable.msg_premium_icons, getString(R.string.PremiumPreviewTodo), getString(R.string.PremiumPreviewTodoDescription)));
-        premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_SHARING_DISABLE, R.drawable.filled_sharing_off2_24, getString(R.string.PremiumPreviewSharingDisable), getString(R.string.PremiumPreviewSharingDisableDescription)));
 
         if (messagesController.premiumFeaturesTypesToPosition.size() > 0) {
             for (int i = 0; i < premiumFeatures.size(); i++) {
@@ -1040,9 +934,9 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
             premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_BUSINESS_QUICK_REPLIES, R.drawable.filled_open_message, getString(R.string.PremiumBusinessQuickReplies), getString(R.string.PremiumBusinessQuickRepliesDescription)));
             premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_BUSINESS_GREETING_MESSAGES, R.drawable.premium_status, getString(R.string.PremiumBusinessGreetingMessages), getString(R.string.PremiumBusinessGreetingMessagesDescription)));
             premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_BUSINESS_AWAY_MESSAGES, R.drawable.filled_premium_away, getString(R.string.PremiumBusinessAwayMessages), getString(R.string.PremiumBusinessAwayMessagesDescription)));
-            premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_BUSINESS_CHATBOTS, R.drawable.filled_premium_bots, getString(R.string.PremiumBusinessChatbots2), getString(R.string.PremiumBusinessChatbotsDescription)));
-            premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_BUSINESS_CHAT_LINKS, R.drawable.filled_premium_chatlink, getString(R.string.PremiumBusinessChatLinks), getString(R.string.PremiumBusinessChatLinksDescription)));
-            premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_BUSINESS_INTRO, R.drawable.filled_premium_intro, getString(R.string.PremiumBusinessIntro), getString(R.string.PremiumBusinessIntroDescription)));
+            premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_BUSINESS_CHATBOTS, R.drawable.filled_premium_bots, applyNewSpan(getString(R.string.PremiumBusinessChatbots2)), getString(R.string.PremiumBusinessChatbotsDescription)));
+            premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_BUSINESS_CHAT_LINKS, R.drawable.filled_premium_chatlink, applyNewSpan(getString(R.string.PremiumBusinessChatLinks)), getString(R.string.PremiumBusinessChatLinksDescription)));
+            premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_BUSINESS_INTRO, R.drawable.filled_premium_intro, applyNewSpan(getString(R.string.PremiumBusinessIntro)), getString(R.string.PremiumBusinessIntroDescription)));
         } else {
             premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_EMOJI_STATUS, R.drawable.filled_premium_status2, getString(R.string.PremiumPreviewBusinessEmojiStatus), getString(R.string.PremiumPreviewBusinessEmojiStatusDescription)));
             premiumFeatures.add(new PremiumFeatureData(PREMIUM_FEATURE_FOLDER_TAGS, R.drawable.premium_tags, getString(R.string.PremiumPreviewFolderTags), getString(R.string.PremiumPreviewFolderTagsDescription)));
@@ -1096,6 +990,10 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
         }
     }
 
+    private void checkButtonDivider() {
+        AndroidUtilities.updateViewVisibilityAnimated(buttonDivider, listView.canScrollVertically(1), 1f, true);
+    }
+
     public static void buyPremium(BaseFragment fragment, String source) {
         buyPremium(fragment, null, source, true);
     }
@@ -1114,11 +1012,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
 
     public static void buyPremium(BaseFragment fragment, SubscriptionTier tier, String source, boolean forcePremium, BillingFlowParams.SubscriptionUpdateParams updateParams) {
         if (BuildVars.IS_BILLING_UNAVAILABLE) {
-            if (fragment == null) {
-                new PremiumNotAvailableBottomSheet(fragment).show();
-            } else {
-                fragment.showDialog(new PremiumNotAvailableBottomSheet(fragment));
-            }
+            fragment.showDialog(new PremiumNotAvailableBottomSheet(fragment));
             return;
         }
         final int account = fragment == null ? UserConfig.selectedAccount : fragment.getCurrentAccount();
@@ -1129,7 +1023,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
 
         if (tier == null) {
             forcePremium = true;
-            TLRPC.TL_help_premiumPromo promo = MediaDataController.getInstance(account).getPremiumPromo();
+            TLRPC.TL_help_premiumPromo promo = fragment.getAccountInstance().getMediaDataController().getPremiumPromo();
             if (promo != null) {
                 for (TLRPC.TL_premiumSubscriptionOption option : promo.period_options) {
                     if (option.months == 1) {
@@ -1146,27 +1040,71 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
         PremiumPreviewFragment.sentPremiumButtonClick();
 
         if (BuildVars.useInvoiceBilling()) {
-            final Activity activity = fragment != null ? fragment.getParentActivity() : LaunchActivity.instance;
-            if (activity instanceof LaunchActivity) {
-                final LaunchActivity launchActivity = (LaunchActivity) activity;
-                if (selectedTier == null || selectedTier.subscriptionOption == null || selectedTier.subscriptionOption.bot_url == null) {
-                    final MessagesController messagesController = MessagesController.getInstance(account);
-                    if (!TextUtils.isEmpty(messagesController.premiumBotUsername)) {
-                        launchActivity.setNavigateToPremiumBot(true);
-                        launchActivity.onNewIntent(new Intent(Intent.ACTION_VIEW, Uri.parse("https://teamgram.me/" + messagesController.premiumBotUsername + "?start=" + source)), (Browser.Progress) null);
-                    } else if (!TextUtils.isEmpty(messagesController.premiumInvoiceSlug)) {
-                        launchActivity.onNewIntent(new Intent(Intent.ACTION_VIEW, Uri.parse("https://teamgram.me/$" + messagesController.premiumInvoiceSlug)), (Browser.Progress) null);
-                    }
-                } else {
-                    final Uri uri = Uri.parse(selectedTier.subscriptionOption.bot_url);
-                    if (uri.getHost().equals("teamgram.me")) {
-                        if (!uri.getPath().startsWith("/$") && !uri.getPath().startsWith("/invoice/")) {
-                            launchActivity.setNavigateToPremiumBot(true);
-                        }
-                    }
-                    Browser.openUrl(launchActivity, tier.subscriptionOption.bot_url);
-                }
+            if (selectedTier == null || selectedTier.subscriptionOption == null) {
+                return;
             }
+
+            TLRPC.TL_premiumGiftCodeOption giftOption = new TLRPC.TL_premiumGiftCodeOption();
+            giftOption.months = selectedTier.subscriptionOption.months;
+            giftOption.currency = selectedTier.subscriptionOption.currency;
+            giftOption.amount = selectedTier.subscriptionOption.amount;
+            giftOption.users = 0;
+
+            TLRPC.TL_inputStorePaymentPremiumSubscription purpose = new TLRPC.TL_inputStorePaymentPremiumSubscription();
+            if (updateParams != null) {
+                purpose.upgrade = true;
+            }
+
+            TLRPC.TL_inputInvoicePremiumGiftCode invoice = new TLRPC.TL_inputInvoicePremiumGiftCode();
+            invoice.purpose = purpose;
+            invoice.option = giftOption;
+
+            TLRPC.TL_payments_getPaymentForm req = new TLRPC.TL_payments_getPaymentForm();
+            req.invoice = invoice;
+
+            boolean finalForcePremium = forcePremium;
+            fragment.getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                if (error != null) {
+                    AlertsCreator.processError(account, error, fragment, req);
+                    return;
+                }
+                if (response instanceof TLRPC.TL_payments_paymentFormStars) {
+                    StarsController.getInstance(account).openReviewPaymentForm(invoice, (TLRPC.TL_payments_paymentFormStars) response, (success, errorText) -> {
+                        if (!success) {
+                            return;
+                        }
+                        if (fragment instanceof PremiumPreviewFragment) {
+                            PremiumPreviewFragment premiumPreviewFragment = (PremiumPreviewFragment) fragment;
+                            premiumPreviewFragment.getMediaDataController().loadPremiumPromo(false);
+                            premiumPreviewFragment.listView.smoothScrollToPosition(0);
+                        }
+                    });
+                    return;
+                }
+                PaymentFormActivity paymentFormActivity = null;
+                if (response instanceof TLRPC.PaymentForm) {
+                    TLRPC.PaymentForm form = (TLRPC.PaymentForm) response;
+                    MessagesController.getInstance(account).putUsers(form.users, false);
+                    paymentFormActivity = new PaymentFormActivity(form, invoice, null);
+                } else if (response instanceof TLRPC.PaymentReceipt) {
+                    paymentFormActivity = new PaymentFormActivity((TLRPC.PaymentReceipt) response);
+                }
+                if (paymentFormActivity != null) {
+                    paymentFormActivity.setPaymentFormCallback(status -> {
+                        if (status == PaymentFormActivity.InvoiceStatus.PAID) {
+                            if (fragment instanceof PremiumPreviewFragment) {
+                                PremiumPreviewFragment premiumPreviewFragment = (PremiumPreviewFragment) fragment;
+                                if (finalForcePremium) {
+                                    premiumPreviewFragment.setForcePremium();
+                                }
+                                premiumPreviewFragment.getMediaDataController().loadPremiumPromo(false);
+                                premiumPreviewFragment.listView.smoothScrollToPosition(0);
+                            }
+                        }
+                    });
+                    fragment.presentFragment(paymentFormActivity);
+                }
+            }), ConnectionsManager.RequestFlagFailOnServerErrors);
             return;
         }
 
@@ -1200,27 +1138,20 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
 
                         premiumPreviewFragment.listView.smoothScrollToPosition(0);
                     } else {
-                        final PremiumPreviewFragment previewFragment = new PremiumPreviewFragment(null);
+                        PremiumPreviewFragment previewFragment = new PremiumPreviewFragment(null);
                         if (finalForcePremium) {
                             previewFragment.setForcePremium();
                         }
-                        if (fragment != null) {
-                            fragment.presentFragment(previewFragment);
-                        } else {
-                            final BaseFragment lastFragment = LaunchActivity.getSafeLastFragment();
-                            if (lastFragment != null) {
-                                lastFragment.presentFragment(previewFragment);
-                            }
-                        }
+                        fragment.presentFragment(previewFragment);
                     }
-                    if (fragment != null && fragment.getParentActivity() instanceof LaunchActivity) {
+                    if (fragment.getParentActivity() instanceof LaunchActivity) {
                         try {
                             fragment.getFragmentView().performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP, HapticFeedbackConstants.FLAG_IGNORE_GLOBAL_SETTING);
                         } catch (Exception ignored) {}
                         ((LaunchActivity) fragment.getParentActivity()).getFireworksOverlay().start();
                     }
                 };
-                if (list != null && !list.isEmpty() && !UserConfig.getInstance(account).isPremium()) {
+                if (list != null && !list.isEmpty() && !fragment.getUserConfig().isPremium()) {
                     for (Purchase purchase : list) {
                         if (purchase.getProducts().contains(BillingController.PREMIUM_PRODUCT_ID)) {
                             TLRPC.TL_payments_assignPlayMarketTransaction req = new TLRPC.TL_payments_assignPlayMarketTransaction();
@@ -1232,13 +1163,13 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                                 purpose.upgrade = true;
                             }
                             req.purpose = purpose;
-                            ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> {
+                            fragment.getConnectionsManager().sendRequest(req, (response, error) -> {
                                 if (response instanceof TLRPC.Updates) {
-                                    MessagesController.getInstance(account).processUpdates((TLRPC.Updates) response, false);
+                                    fragment.getMessagesController().processUpdates((TLRPC.Updates) response, false);
 
                                     AndroidUtilities.runOnUIThread(onSuccess);
                                 } else if (error != null) {
-                                    AndroidUtilities.runOnUIThread(() -> AlertsCreator.processError(account, error, fragment, req));
+                                    AndroidUtilities.runOnUIThread(() -> AlertsCreator.processError(fragment.getCurrentAccount(), error, fragment, req));
                                 }
                             }, ConnectionsManager.RequestFlagFailOnServerErrors | ConnectionsManager.RequestFlagInvokeAfter);
 
@@ -1259,18 +1190,17 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                     purpose.upgrade = true;
                 }
                 req.purpose = purpose;
-                ConnectionsManager.getInstance(account).sendRequest(req, (response, error) -> {
+                fragment.getConnectionsManager().sendRequest(req, (response, error) -> {
                     AndroidUtilities.runOnUIThread(() -> {
                         if (response instanceof TLRPC.TL_boolTrue) {
-                            final Activity activity = fragment != null ? fragment.getParentActivity() : AndroidUtilities.getActivity();
-                            BillingController.getInstance().launchBillingFlow(activity, fragment.getAccountInstance(), purpose, Collections.singletonList(
+                            BillingController.getInstance().launchBillingFlow(fragment.getParentActivity(), fragment.getAccountInstance(), purpose, Collections.singletonList(
                                     BillingFlowParams.ProductDetailsParams.newBuilder()
                                             .setProductDetails(BillingController.PREMIUM_PRODUCT_DETAILS)
                                             .setOfferToken(selectedTier.getOfferDetails().getOfferToken())
                                             .build()
                             ), updateParams, false);
                         } else {
-                            AlertsCreator.processError(account, error, fragment, req);
+                            AlertsCreator.processError(fragment.getCurrentAccount(), error, fragment, req);
                         }
                     });
                 });
@@ -1351,7 +1281,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 return getString(R.string.Loading);
             }
             final boolean isPremium = UserConfig.getInstance(currentAccount).isPremium();
-            final boolean isManyYearsTier = tier.getMonths() > 12 && tier.getMonths() % 12 == 0;
             final boolean isYearTier = tier.getMonths() == 12;
             String price = isYearTier ? tier.getFormattedPricePerYear() : tier.getFormattedPricePerMonth();
             final int resId;
@@ -1365,17 +1294,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                     } else {
                         resId = R.string.SubscribeToPremiumPerYear;
                         price = tier.getFormattedPrice();
-                    }
-                } else if (isManyYearsTier) {
-                    if (MessagesController.getInstance(currentAccount).showAnnualPerMonth) {
-                        resId = R.string.SubscribeToPremium;
-                        price = tier.getFormattedPricePerMonth();
-                    } else {
-                        return LocaleController.formatString(
-                            R.string.SubscribeToPremiumPerCustom,
-                            tier.getFormattedPrice(),
-                            LocaleController.formatPluralString("Years", tier.getMonths() / 12)
-                        );
                     }
                 } else {
                     resId = R.string.SubscribeToPremium;
@@ -1516,18 +1434,17 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                         @Override
                         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
                             if (isLandscapeMode) {
-                                firstViewHeight = 0;
+                                firstViewHeight = statusBarHeight + actionBar.getMeasuredHeight() - dp(16);
                             } else {
-                                int h = dp(80 - 16);
-                                if (backgroundView.getMeasuredHeight() + dp(24 - 16) > h) {
-                                    h = backgroundView.getMeasuredHeight() + dp(24 - 16);
+                                int h = dp(80) + statusBarHeight;
+                                if (backgroundView.getMeasuredHeight() + dp(24) > h) {
+                                    h = backgroundView.getMeasuredHeight() + dp(24);
                                 }
                                 firstViewHeight = h;
                             }
                             super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(firstViewHeight, MeasureSpec.EXACTLY));
                         }
                     };
-                    view.setTag(RecyclerListView.TAG_NOT_SECTION);
                     break;
                 case TYPE_SHADOW:
                     view = new TextInfoPrivacyCell(context);
@@ -1536,33 +1453,23 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                     view = new PremiumFeatureCell(context) {
                         @Override
                         protected void dispatchDraw(Canvas canvas) {
-                            final float r = dp(10);
-
                             AndroidUtilities.rectTmp.set(imageView.getLeft(), imageView.getTop(), imageView.getRight(), imageView.getBottom());
                             matrix.reset();
                             matrix.postScale(1f, totalGradientHeight / 100f, 0, 0);
                             matrix.postTranslate(0, -data.yOffset);
                             shader.setLocalMatrix(matrix);
-                            canvas.drawRoundRect(AndroidUtilities.rectTmp, r, r, gradientPaint);
-
-                            final boolean border = resourceProvider != null ? resourceProvider.isDark() : Theme.isCurrentThemeDark();
-                            if (border) {
-                                final float sw = dp(1);
-                                strokePaint.setStrokeWidth(sw);
-                                canvas.save();
-                                canvas.translate(AndroidUtilities.rectTmp.left, AndroidUtilities.rectTmp.top);
-                                AndroidUtilities.rectTmp.offset(-AndroidUtilities.rectTmp.left, -AndroidUtilities.rectTmp.top);
-                                AndroidUtilities.rectTmp.inset(sw / 2.0f, sw / 2.0f);
-                                canvas.drawRoundRect(AndroidUtilities.rectTmp, r, r, strokePaint);
-                                canvas.restore();
-                            }
-
+                            canvas.drawRoundRect(AndroidUtilities.rectTmp, dp(8), dp(8), gradientPaint);
                             super.dispatchDraw(canvas);
                         }
                     };
                     break;
                 case TYPE_SHADOW_SECTION:
-                    ShadowSectionCell shadowSectionCell = new ShadowSectionCell(context, 12, 0);
+                    ShadowSectionCell shadowSectionCell = new ShadowSectionCell(context, 12, Theme.getColor(Theme.key_windowBackgroundGray));
+                    Drawable shadowDrawable = Theme.getThemedDrawable(context, R.drawable.greydivider_bottom, Theme.getColor(Theme.key_windowBackgroundGrayShadow));
+                    Drawable background = new ColorDrawable(Theme.getColor(Theme.key_windowBackgroundGray));
+                    CombinedDrawable combinedDrawable = new CombinedDrawable(background, shadowDrawable, 0, 0);
+                    combinedDrawable.setFullsize(true);
+                    shadowSectionCell.setBackgroundDrawable(combinedDrawable);
                     view = shadowSectionCell;
                     break;
                 case TYPE_HELP_US:
@@ -1570,7 +1477,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                     break;
                 case TYPE_BOTTOM_PADDING:
                     view = new View(context);
-                    view.setTag(RecyclerListView.TAG_NOT_SECTION);
+                    view.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray));
                     break;
                 case TYPE_HEADER:
                     view = new HeaderCell(context);
@@ -1591,15 +1498,23 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 ((PremiumFeatureCell) holder.itemView).setData(morePremiumFeatures.get(position - moreFeaturesStartRow), position != moreFeaturesEndRow - 1);
             } else if (position == sectionRow) {
                 TextInfoPrivacyCell privacyCell = (TextInfoPrivacyCell) holder.itemView;
+
+                Drawable shadowDrawable = Theme.getThemedDrawable(privacyCell.getContext(), R.drawable.greydivider, Theme.getColor(Theme.key_windowBackgroundGrayShadow));
+                Drawable background = new ColorDrawable(Theme.getColor(Theme.key_windowBackgroundGray));
+                CombinedDrawable combinedDrawable = new CombinedDrawable(background, shadowDrawable, 0, 0);
+                combinedDrawable.setFullsize(true);
+                privacyCell.setBackground(combinedDrawable);
+
                 privacyCell.setText("");
                 privacyCell.setFixedSize(12);
             } else if (position == statusRow || position == privacyRow || position == showAdsInfoRow) {
                 TextInfoPrivacyCell privacyCell = (TextInfoPrivacyCell) holder.itemView;
-                if (!whiteBackground) {
-                    privacyCell.setTextColor(Theme.multAlpha(0xFFFFFFFF, 0.75f));
-                    privacyCell.getTextView().setLinkTextColor(0xFFFFFFFF);
-                    privacyCell.setLinkTextRippleColor(Theme.multAlpha(0xFFFFFFFF, 0.15f));
-                }
+
+                Drawable shadowDrawable = Theme.getThemedDrawable(privacyCell.getContext(), R.drawable.greydivider, Theme.getColor(Theme.key_windowBackgroundGrayShadow));
+                Drawable background = new ColorDrawable(Theme.getColor(Theme.key_windowBackgroundGray));
+                CombinedDrawable combinedDrawable = new CombinedDrawable(background, shadowDrawable, 0, 0);
+                combinedDrawable.setFullsize(true);
+                privacyCell.setBackground(combinedDrawable);
                 privacyCell.setFixedSize(0);
 
                 if (position == showAdsInfoRow) {
@@ -1646,9 +1561,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                             URLSpanReplacement spanReplacement = new URLSpanReplacement(run.urlEntity.url, run);
                             spanReplacement.setNavigateToPremiumBot(true);
                             spannableString.setSpan(spanReplacement, run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            if (!whiteBackground) {
-                                spannableString.setSpan(new TypefaceSpan(AndroidUtilities.bold()), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            }
                         } else if (run.urlEntity instanceof TLRPC.TL_messageEntityMentionName) {
                             spannableString.setSpan(new URLSpanUserMention("" + ((TLRPC.TL_messageEntityMentionName) run.urlEntity).user_id, t, run), run.start, run.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         } else if (run.urlEntity instanceof TLRPC.TL_inputMessageEntityMentionName) {
@@ -1781,6 +1693,9 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
 
                 {
                     paint.setColor(Theme.getColor(Theme.key_dialogBackground));
+                    if (whiteBackground) {
+                        paint.setShadowLayer(dp(2), 0, dp(.66f), 0x30000000);
+                    }
                 }
 
                 private Path path = new Path();
@@ -1788,7 +1703,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                 public void dispatchDraw(Canvas c) {
                     path.rewind();
                     AndroidUtilities.rectTmp.set(0, 0, getWidth(), getHeight());
-                    path.addRoundRect(AndroidUtilities.rectTmp, dp(16), dp(16), Path.Direction.CW);
+                    path.addRoundRect(AndroidUtilities.rectTmp, dp(12), dp(12), Path.Direction.CW);
                     c.drawPath(path, paint);
                     c.save();
                     c.clipPath(path);
@@ -1952,11 +1867,6 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
             totalTiersGradientHeight = yOffset;
         }
 
-        @Override
-        public boolean onInterceptTouchEvent(MotionEvent ev) {
-            return true;
-        }
-
         @SuppressLint("NotifyDataSetChanged")
         public void updatePremiumTiers() {
             subscriptionTiers.clear();
@@ -2004,26 +1914,11 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
             } else if (BillingController.getInstance().isReady() && BillingController.PREMIUM_PRODUCT_DETAILS != null) {
                 long pricePerMonthMaxStore = 0;
 
-                boolean hasSomeLoaded = false;
                 for (SubscriptionTier subscriptionTier : subscriptionTiers) {
                     subscriptionTier.setGooglePlayProductDetails(BillingController.PREMIUM_PRODUCT_DETAILS);
 
                     if (subscriptionTier.getPricePerYear() > pricePerMonthMaxStore) {
                         pricePerMonthMaxStore = subscriptionTier.getPricePerYear();
-                    }
-
-                    if (subscriptionTier.getOfferDetails() != null) {
-                        hasSomeLoaded = true;
-                    }
-                }
-
-                if (hasSomeLoaded) {
-                    for (int i = 0; i < subscriptionTiers.size(); ++i) {
-                        final SubscriptionTier tier = subscriptionTiers.get(i);
-                        if (tier.getOfferDetails() == null) {
-                            subscriptionTiers.remove(i);
-                            --i;
-                        }
                     }
                 }
 
@@ -2117,19 +2012,16 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
             animated = false;
         }
         if (BuildVars.IS_BILLING_UNAVAILABLE && selectedTierIndex < subscriptionTiers.size()) {
-            premiumButtonView.setButton(getPremiumButtonText(currentAccount, subscriptionTiers.get(selectedTierIndex)), null, animated);
-            buttonContainerInternal.setOnClickListener(v -> buyPremium(this));
+            premiumButtonView.setButton(getPremiumButtonText(currentAccount, subscriptionTiers.get(selectedTierIndex)), v -> buyPremium(this), animated);
             return;
         }
         if (!BuildVars.useInvoiceBilling() && (!BillingController.getInstance().isReady() || subscriptionTiers.isEmpty() || selectedTierIndex >= subscriptionTiers.size() || subscriptionTiers.get(selectedTierIndex).googlePlayProductDetails == null)) {
-            premiumButtonView.setButton(getString(R.string.Loading), null, animated);
-            buttonContainerInternal.setOnClickListener(v -> {});
+            premiumButtonView.setButton(getString(R.string.Loading), v -> {}, animated);
             premiumButtonView.setFlickerDisabled(true);
             return;
         }
         if (!subscriptionTiers.isEmpty() && selectedTierIndex < subscriptionTiers.size()) {
-            premiumButtonView.setButton(getPremiumButtonText(currentAccount, subscriptionTiers.get(selectedTierIndex)), null, animated);
-            buttonContainerInternal.setOnClickListener(v -> {
+            premiumButtonView.setButton(getPremiumButtonText(currentAccount, subscriptionTiers.get(selectedTierIndex)), v -> {
                 SubscriptionTier tier = subscriptionTiers.get(selectedTierIndex);
                 BillingFlowParams.SubscriptionUpdateParams updateParams = null;
                 if (currentSubscriptionTier != null && currentSubscriptionTier.subscriptionOption != null && currentSubscriptionTier.subscriptionOption.transaction != null) {
@@ -2140,7 +2032,7 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
                             .build();
                 }
                 buyPremium(this, tier, "settings", true, updateParams);
-            });
+            }, animated);
             premiumButtonView.setFlickerDisabled(false);
         }
     }
@@ -2209,12 +2101,12 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
     }
 
     @Override
-    public boolean onBackPressed(boolean invoked) {
+    public boolean onBackPressed() {
         if (settingsView != null) {
-            if (invoked) closeSetting();
+            closeSetting();
             return false;
         }
-        return super.onBackPressed(invoked);
+        return super.onBackPressed();
     }
 
     private void closeSetting() {
@@ -2546,43 +2438,5 @@ public class PremiumPreviewFragment extends BaseFragment implements Notification
         };
         popup[0].showAsDropDown(cell, 0, yoff, Gravity.TOP | Gravity.RIGHT);
         popup[0].dimBehind();
-    }
-
-    @Override
-    public boolean isSupportEdgeToEdge() {
-        return true;
-    }
-
-    @Override
-    public boolean drawEdgeNavigationBar() {
-        return false;
-    }
-
-    private BlurredBackgroundWithFadeDrawable navbarProtectionDrawable;
-    private final @Nullable DownscaleScrollableNoiseSuppressor scrollableViewNoiseSuppressor;
-    private final @Nullable BlurredBackgroundSourceRenderNode iBlur3SourceGlassFrosted;
-    private final @NonNull BlurredBackgroundSource iBlur3Source;
-    private final @NonNull BlurredBackgroundDrawableViewFactory iBlur3Factory;
-    private final @NonNull BlurredBackgroundDrawableViewFactory iBlur3FactoryBg;
-
-    private IBlur3Capture iBlur3Capture;
-
-
-    private final ArrayList<RectF> iBlur3Positions = new ArrayList<>();
-    private final RectF iBlur3PositionMainTabs = new RectF(); {
-        iBlur3Positions.add(iBlur3PositionMainTabs);
-    }
-
-    private void blur3_InvalidateBlur() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || scrollableViewNoiseSuppressor == null) {
-            return;
-        }
-
-        final int mainTabBottom = fragmentView.getMeasuredHeight() + dp(48);
-        final int mainTabTop = fragmentView.getMeasuredHeight() - AndroidUtilities.navigationBarHeight - dp(48 + 48 + 24 + 12);
-        iBlur3PositionMainTabs.set(0, mainTabTop, fragmentView.getMeasuredWidth(), mainTabBottom);
-
-        scrollableViewNoiseSuppressor.setupRenderNodes(iBlur3Positions, 1);
-        scrollableViewNoiseSuppressor.invalidateResultRenderNodes(iBlur3Capture, fragmentView.getMeasuredWidth(), fragmentView.getMeasuredHeight());
     }
 }

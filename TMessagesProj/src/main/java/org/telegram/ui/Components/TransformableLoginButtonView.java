@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.text.TextPaint;
 import android.view.View;
 
@@ -32,8 +33,8 @@ public class TransformableLoginButtonView extends View {
     private @interface TransformType {}
 
     private float progress;
-    private final Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private Paint backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private Paint outlinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
     private TextPaint textPaint;
     private String buttonText;
@@ -45,7 +46,7 @@ public class TransformableLoginButtonView extends View {
     @TransformType
     private int transformType = TRANSFORM_OPEN_ARROW;
 
-    private final RectF rect = new RectF();
+    private RectF rect = new RectF();
 
     public TransformableLoginButtonView(Context context) {
         super(context);
@@ -94,7 +95,7 @@ public class TransformableLoginButtonView extends View {
     }
 
     @Override
-    protected void onDraw(@NonNull Canvas canvas) {
+    protected void onDraw(Canvas canvas) {
         if (drawBackground) {
             boolean animateCornerRadius = transformType == TRANSFORM_OPEN_ARROW;
             float rad = AndroidUtilities.dp(BUTTON_RADIUS_DP + (CIRCLE_RADIUS_DP - BUTTON_RADIUS_DP) * (animateCornerRadius ? progress : 1f));
@@ -148,7 +149,9 @@ public class TransformableLoginButtonView extends View {
 
         if (rippleDrawable != null) {
             rippleDrawable.setBounds(0, 0, getWidth(), getHeight());
-            rippleDrawable.setHotspotBounds(0, 0, getWidth(), getHeight());
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                rippleDrawable.setHotspotBounds(0, 0, getWidth(), getHeight());
+            }
             rippleDrawable.draw(canvas);
         }
     }
@@ -173,7 +176,7 @@ public class TransformableLoginButtonView extends View {
     @Override
     public void drawableHotspotChanged(float x, float y) {
         super.drawableHotspotChanged(x, y);
-        if (rippleDrawable != null) {
+        if (rippleDrawable != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             rippleDrawable.setHotspot(x, y);
         }
     }

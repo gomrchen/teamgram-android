@@ -21,7 +21,6 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.Components.ChatAttachAlertPhotoLayout;
 import org.telegram.ui.Components.LayoutHelper;
 
 public class PhotoAttachPermissionCell extends FrameLayout {
@@ -79,9 +78,7 @@ public class PhotoAttachPermissionCell extends FrameLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(
-            MeasureSpec.makeMeasureSpec(itemSize, MeasureSpec.EXACTLY),
-            MeasureSpec.makeMeasureSpec(itemSize + AndroidUtilities.dp(ChatAttachAlertPhotoLayout.GAP), MeasureSpec.EXACTLY));
+        super.onMeasure(MeasureSpec.makeMeasureSpec(itemSize, MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(itemSize + AndroidUtilities.dp(5), MeasureSpec.EXACTLY));
     }
 
     private int getThemedColor(int key) {

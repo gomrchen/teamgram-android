@@ -15,7 +15,6 @@ import android.view.View;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
-import androidx.core.view.ViewCompat;
 import androidx.dynamicanimation.animation.FloatValueHolder;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
@@ -127,7 +126,6 @@ public abstract class RightSlidingDialogContainer extends FrameLayout {
             }
 
             fragment.setPreviewDelegate(() -> finishPreview());
-            ViewCompat.requestApplyInsets(this);
         }
     }
 

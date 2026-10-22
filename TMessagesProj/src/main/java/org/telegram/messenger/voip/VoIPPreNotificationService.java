@@ -42,8 +42,6 @@ import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.VoIPFragment;
 import org.telegram.ui.VoIPPermissionActivity;
 
-import java.util.ArrayList;
-
 public class VoIPPreNotificationService { // } extends Service implements AudioManager.OnAudioFocusChangeListener {
 
     public static final class State implements VoIPServiceState {
@@ -80,14 +78,6 @@ public class VoIPPreNotificationService { // } extends Service implements AudioM
         }
 
         @Override
-        public boolean isCallingVideo() {
-            if (call != null) {
-                return call.video;
-            }
-            return false;
-        }
-
-        @Override
         public void acceptIncomingCall() {
             answer(ApplicationLoader.applicationContext);
         }
@@ -108,21 +98,6 @@ public class VoIPPreNotificationService { // } extends Service implements AudioM
             if (VoIPFragment.getInstance() != null) {
                 VoIPFragment.getInstance().onStateChanged(getCallState());
             }
-        }
-
-        @Override
-        public boolean isConference() {
-            return false;
-        }
-
-        @Override
-        public TLRPC.GroupCall getGroupCall() {
-            return null;
-        }
-
-        @Override
-        public ArrayList<TLRPC.GroupCallParticipant> getGroupParticipants() {
-            return null;
         }
     }
 
@@ -311,7 +286,7 @@ public class VoIPPreNotificationService { // } extends Service implements AudioM
     private static MediaPlayer ringtonePlayer;
     private static Vibrator vibrator;
 
-    public static void startRinging(Context context, int account, long user_id) {
+    private static void startRinging(Context context, int account, long user_id) {
         SharedPreferences prefs = MessagesController.getNotificationsSettings(account);
         AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         boolean needRing = am.getRingerMode() != AudioManager.RINGER_MODE_SILENT;
@@ -389,7 +364,7 @@ public class VoIPPreNotificationService { // } extends Service implements AudioM
         }
     }
 
-    public static void stopRinging() {
+    private static void stopRinging() {
         synchronized (sync) {
             if (ringtonePlayer != null) {
                 ringtonePlayer.stop();
@@ -475,7 +450,7 @@ public class VoIPPreNotificationService { // } extends Service implements AudioM
                 return;
             }
         }
-        final TL_phone.receivedCall req = new TL_phone.receivedCall();
+        TL_phone.receivedCall req = new TL_phone.receivedCall();
         req.peer = new TLRPC.TL_inputPhoneCall();
         req.peer.id = call.id;
         req.peer.access_hash = call.access_hash;

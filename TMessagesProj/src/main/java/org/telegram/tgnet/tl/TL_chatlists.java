@@ -1,9 +1,9 @@
 package org.telegram.tgnet.tl;
 
+import org.telegram.tgnet.AbstractSerializedData;
 import org.telegram.tgnet.InputSerializedData;
 import org.telegram.tgnet.OutputSerializedData;
 import org.telegram.tgnet.TLObject;
-import org.telegram.tgnet.TLParseException;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.tgnet.Vector;
 
@@ -16,8 +16,16 @@ public class TL_chatlists {
         public int filter_id;
 
         public static TL_inputChatlistDialogFilter TLdeserialize(InputSerializedData stream, int constructor, boolean exception) {
-            final TL_inputChatlistDialogFilter result = TL_inputChatlistDialogFilter.constructor != constructor ? null : new TL_inputChatlistDialogFilter();
-            return TLdeserialize(TL_inputChatlistDialogFilter.class, result, stream, constructor, exception);
+            if (TL_inputChatlistDialogFilter.constructor != constructor) {
+                if (exception) {
+                    throw new RuntimeException(String.format("can't parse magic %x in TL_inputChatlistDialogFilter", constructor));
+                } else {
+                    return null;
+                }
+            }
+            TL_inputChatlistDialogFilter result = new TL_inputChatlistDialogFilter();
+            result.readParams(stream, exception);
+            return result;
         }
 
         public void readParams(InputSerializedData stream, boolean exception) {
@@ -37,8 +45,16 @@ public class TL_chatlists {
         public TL_exportedChatlistInvite invite;
 
         public static TL_chatlists_exportedChatlistInvite TLdeserialize(InputSerializedData stream, int constructor, boolean exception) {
-            final TL_chatlists_exportedChatlistInvite result = TL_chatlists_exportedChatlistInvite.constructor != constructor ? null : new TL_chatlists_exportedChatlistInvite();
-            return TLdeserialize(TL_chatlists_exportedChatlistInvite.class, result, stream, constructor, exception);
+            if (TL_chatlists_exportedChatlistInvite.constructor != constructor) {
+                if (exception) {
+                    throw new RuntimeException(String.format("can't parse magic %x in TL_chatlists_exportedChatlistInvite", constructor));
+                } else {
+                    return null;
+                }
+            }
+            TL_chatlists_exportedChatlistInvite result = new TL_chatlists_exportedChatlistInvite();
+            result.readParams(stream, exception);
+            return result;
         }
 
         public void readParams(InputSerializedData stream, boolean exception) {
@@ -63,8 +79,16 @@ public class TL_chatlists {
         public ArrayList<TLRPC.Peer> peers = new ArrayList<>();
 
         public static TL_exportedChatlistInvite TLdeserialize(InputSerializedData stream, int constructor, boolean exception) {
-            final TL_exportedChatlistInvite result = TL_exportedChatlistInvite.constructor != constructor ? null : new TL_exportedChatlistInvite();
-            return TLdeserialize(TL_exportedChatlistInvite.class, result, stream, constructor, exception);
+            if (TL_exportedChatlistInvite.constructor != constructor) {
+                if (exception) {
+                    throw new RuntimeException(String.format("can't parse magic %x in TL_exportedChatlistInvite", constructor));
+                } else {
+                    return null;
+                }
+            }
+            TL_exportedChatlistInvite result = new TL_exportedChatlistInvite();
+            result.readParams(stream, exception);
+            return result;
         }
 
         public void readParams(InputSerializedData stream, boolean exception) {
@@ -93,8 +117,16 @@ public class TL_chatlists {
         public ArrayList<TLRPC.User> users = new ArrayList<>();
 
         public static TL_chatlists_exportedInvites TLdeserialize(InputSerializedData stream, int constructor, boolean exception) {
-            final TL_chatlists_exportedInvites result = TL_chatlists_exportedInvites.constructor != constructor ? null : new TL_chatlists_exportedInvites();
-            return TLdeserialize(TL_chatlists_exportedInvites.class, result, stream, constructor, exception);
+            if (TL_chatlists_exportedInvites.constructor != constructor) {
+                if (exception) {
+                    throw new RuntimeException(String.format("can't parse magic %x in TL_chatlists_exportedInvites", constructor));
+                } else {
+                    return null;
+                }
+            }
+            TL_chatlists_exportedInvites result = new TL_chatlists_exportedInvites();
+            result.readParams(stream, exception);
+            return result;
         }
 
         public void readParams(InputSerializedData stream, boolean exception) {
@@ -126,7 +158,13 @@ public class TL_chatlists {
                     result = new TL_chatlists_chatlistInvite_layer195();
                     break;
             }
-            return TLdeserialize(chatlist_ChatlistInvite.class, result, stream, constructor, exception);
+            if (result == null && exception) {
+                throw new RuntimeException(String.format("can't parse magic %x in chatlist_ChatlistInvite", constructor));
+            }
+            if (result != null) {
+                result.readParams(stream, exception);
+            }
+            return result;
         }
     }
 
@@ -151,7 +189,6 @@ public class TL_chatlists {
             stream.writeInt32(constructor);
             stream.writeInt32(filter_id);
             Vector.serialize(stream, missing_peers);
-            Vector.serialize(stream, already_peers);
             Vector.serialize(stream, chats);
             Vector.serialize(stream, users);
         }
@@ -230,8 +267,16 @@ public class TL_chatlists {
         public ArrayList<TLRPC.User> users = new ArrayList<>();
 
         public static TL_chatlists_chatlistUpdates TLdeserialize(InputSerializedData stream, int constructor, boolean exception) {
-            final TL_chatlists_chatlistUpdates result = TL_chatlists_chatlistUpdates.constructor != constructor ? null : new TL_chatlists_chatlistUpdates();
-            return TLdeserialize(TL_chatlists_chatlistUpdates.class, result, stream, constructor, exception);
+            if (TL_chatlists_chatlistUpdates.constructor != constructor) {
+                if (exception) {
+                    throw new RuntimeException(String.format("can't parse magic %x in TL_chatlists_chatlistUpdates", constructor));
+                } else {
+                    return null;
+                }
+            }
+            TL_chatlists_chatlistUpdates result = new TL_chatlists_chatlistUpdates();
+            result.readParams(stream, exception);
+            return result;
         }
 
         public void readParams(InputSerializedData stream, boolean exception) {

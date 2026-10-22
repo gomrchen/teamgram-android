@@ -30,6 +30,7 @@ import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.EmojiThemes;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Cells.DrawerProfileCell;
 import org.telegram.ui.Cells.TextCell;
 import org.telegram.ui.Components.ChatThemeBottomSheet;
 import org.telegram.ui.Components.FlickerLoadingView;
@@ -94,7 +95,7 @@ public class DefaultThemesPreviewCell extends LinearLayout {
             ChatThemeBottomSheet.ChatThemeItem chatTheme = adapter.items.get(position);
             Theme.ThemeInfo info = chatTheme.chatTheme.getThemeInfo(themeIndex);
             int accentId = -1;
-            if (chatTheme.chatTheme.getEmoticonOrSlug().equals("\uD83C\uDFE0") || chatTheme.chatTheme.getEmoticonOrSlug().equals("\uD83C\uDFA8")) {
+            if (chatTheme.chatTheme.getEmoticon().equals("\uD83C\uDFE0") || chatTheme.chatTheme.getEmoticon().equals("\uD83C\uDFA8")) {
                 accentId = chatTheme.chatTheme.getAccentId(themeIndex);
             }
             if (info == null) {
@@ -175,12 +176,12 @@ public class DefaultThemesPreviewCell extends LinearLayout {
                 @SuppressLint("NotifyDataSetChanged")
                 @Override
                 public void onClick(View view) {
-                    if (DialogsActivity.switchingTheme) {
+                    if (DrawerProfileCell.switchingTheme) {
                         return;
                     }
                     int iconOldColor = Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4);
                     int navBarOldColor = Theme.getColor(Theme.key_windowBackgroundGray);
-                    DialogsActivity.switchingTheme = true;
+                    DrawerProfileCell.switchingTheme = true;
                     SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
                     String dayThemeName = preferences.getString("lastDayTheme", "Blue");
                     if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
@@ -239,8 +240,7 @@ public class DefaultThemesPreviewCell extends LinearLayout {
                         valueAnimator.start();
 
                         int navBarNewColor = Theme.getColor(Theme.key_windowBackgroundGray);
-                        final Activity activity = context instanceof Activity ? ((Activity) context) : null;
-                        final Window window = activity != null ? activity.getWindow() : null;
+                        final Window window = context instanceof Activity ? ((Activity) context).getWindow() : null;
                         if (window != null) {
                             if (navBarAnimator != null && navBarAnimator.isRunning()) {
                                 navBarAnimator.cancel();
@@ -253,15 +253,15 @@ public class DefaultThemesPreviewCell extends LinearLayout {
                                 public void onAnimationUpdate(ValueAnimator valueAnimator) {
                                     float t = Math.max(0, Math.min(1, ((float) valueAnimator.getAnimatedValue() * fullDuration - startDelay) / duration));
                                     navBarColor = ColorUtils.blendARGB(navBarFromColor, navBarNewColor, t);
-                                    AndroidUtilities.setNavigationBarColor(activity, navBarColor, false);
-                                    AndroidUtilities.setLightNavigationBar(activity, AndroidUtilities.computePerceivedBrightness(navBarColor) >= 0.721f);
+                                    AndroidUtilities.setNavigationBarColor(window, navBarColor, false);
+                                    AndroidUtilities.setLightNavigationBar(window, AndroidUtilities.computePerceivedBrightness(navBarColor) >= 0.721f);
                                 }
                             });
                             navBarAnimator.addListener(new AnimatorListenerAdapter() {
                                 @Override
                                 public void onAnimationEnd(Animator animation) {
-                                    AndroidUtilities.setNavigationBarColor(activity, navBarNewColor, false);
-                                    AndroidUtilities.setLightNavigationBar(activity, AndroidUtilities.computePerceivedBrightness(navBarNewColor) >= 0.721f);
+                                    AndroidUtilities.setNavigationBarColor(window, navBarNewColor, false);
+                                    AndroidUtilities.setLightNavigationBar(window, AndroidUtilities.computePerceivedBrightness(navBarNewColor) >= 0.721f);
                                 }
                             });
                             navBarAnimator.setDuration((long) fullDuration);
@@ -378,6 +378,7 @@ public class DefaultThemesPreviewCell extends LinearLayout {
             adapter.notifyItemRangeChanged(0, adapter.items.size());
         }
         updateSelectedPosition();
+        updateColors();
     }
 
     private void updateSelectedPosition() {

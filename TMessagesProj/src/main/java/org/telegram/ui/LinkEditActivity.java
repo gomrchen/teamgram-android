@@ -8,7 +8,6 @@ import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
-import android.icu.number.Scale;
 import android.os.Vibrator;
 import android.text.Editable;
 import android.text.InputFilter;
@@ -54,8 +53,6 @@ import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.AlertsCreator;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.Components.ScaleStateListAnimator;
-import org.telegram.ui.Components.SectionsScrollView;
 import org.telegram.ui.Components.SizeNotifierFrameLayout;
 import org.telegram.ui.Components.SlideChooseView;
 import org.telegram.ui.Stars.StarsController;
@@ -89,7 +86,7 @@ public class LinkEditActivity extends BaseFragment {
     private FrameLayout buttonLayout;
     private TextView buttonTextView;
     private TextSettingsCell revokeLink;
-    private SectionsScrollView scrollView;
+    private ScrollView scrollView;
     private EditText nameEditText;
     private TextInfoPrivacyCell dividerName;
     private TextView createTextView;
@@ -153,47 +150,7 @@ public class LinkEditActivity extends BaseFragment {
         int topSpace = actionBar.getOccupyStatusBar() ? (AndroidUtilities.statusBarHeight / dp(2)) : 0;
         actionBar.addView(createTextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.END | Gravity.CENTER_VERTICAL, 0, topSpace, 0, 0));
 
-        LinearLayout linearLayout = new SectionsScrollView.SectionsLinearLayout(context) {
-
-            @Override
-            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-//                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-//                int elementsHeight = 0;
-//                int h = MeasureSpec.getSize(heightMeasureSpec);
-//                for (int i = 0; i < getChildCount(); i++) {
-//                    View child = getChildAt(i);
-//                    if (child != buttonTextView && child.getVisibility() != View.GONE) {
-//                        elementsHeight += child.getMeasuredHeight();
-//                    }
-//                }
-//                elementsHeight += dp(79);
-//
-//                int topMargin;
-//                int buttonH = dp(48) + dp(24) + dp(16);
-//                if (elementsHeight >= h - buttonH) {
-//                    topMargin = dp(24);
-//                } else {
-//                    topMargin = dp(24) + (h - buttonH) - elementsHeight;
-//                }
-//
-//                if (((LayoutParams) buttonLayout.getLayoutParams()).topMargin != topMargin) {
-//                    int oldMargin = ((LayoutParams) buttonLayout.getLayoutParams()).topMargin;
-//                    ((LayoutParams) buttonLayout.getLayoutParams()).topMargin = topMargin;
-//                    if (!firstLayout) {
-//                        buttonLayout.setTranslationY(oldMargin - topMargin);
-//                        buttonLayout.animate().translationY(0).setDuration(AdjustPanLayoutHelper.keyboardDuration).setInterpolator(AdjustPanLayoutHelper.keyboardInterpolator).start();
-//                    }
-                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-            }
-
-            @Override
-            protected void dispatchDraw(Canvas canvas) {
-                super.dispatchDraw(canvas);
-                firstLayout = false;
-            }
-        };
-        scrollView = new SectionsScrollView(context, linearLayout, resourceProvider);
-        actionBar.setAdaptiveBackground(scrollView);
+        scrollView = new ScrollView(context);
         SizeNotifierFrameLayout contentView = new SizeNotifierFrameLayout(context) {
 
 //            int oldKeyboardHeight;
@@ -288,6 +245,45 @@ public class LinkEditActivity extends BaseFragment {
 
         fragmentView = contentView;
 
+        LinearLayout linearLayout = new LinearLayout(context) {
+
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+//                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+//                int elementsHeight = 0;
+//                int h = MeasureSpec.getSize(heightMeasureSpec);
+//                for (int i = 0; i < getChildCount(); i++) {
+//                    View child = getChildAt(i);
+//                    if (child != buttonTextView && child.getVisibility() != View.GONE) {
+//                        elementsHeight += child.getMeasuredHeight();
+//                    }
+//                }
+//                elementsHeight += dp(79);
+//
+//                int topMargin;
+//                int buttonH = dp(48) + dp(24) + dp(16);
+//                if (elementsHeight >= h - buttonH) {
+//                    topMargin = dp(24);
+//                } else {
+//                    topMargin = dp(24) + (h - buttonH) - elementsHeight;
+//                }
+//
+//                if (((LayoutParams) buttonLayout.getLayoutParams()).topMargin != topMargin) {
+//                    int oldMargin = ((LayoutParams) buttonLayout.getLayoutParams()).topMargin;
+//                    ((LayoutParams) buttonLayout.getLayoutParams()).topMargin = topMargin;
+//                    if (!firstLayout) {
+//                        buttonLayout.setTranslationY(oldMargin - topMargin);
+//                        buttonLayout.animate().translationY(0).setDuration(AdjustPanLayoutHelper.keyboardDuration).setInterpolator(AdjustPanLayoutHelper.keyboardInterpolator).start();
+//                    }
+                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+            }
+
+            @Override
+            protected void dispatchDraw(Canvas canvas) {
+                super.dispatchDraw(canvas);
+                firstLayout = false;
+            }
+        };
         LayoutTransition transition = new LayoutTransition();
         transition.setDuration(420);
         transition.setInterpolator(LayoutTransition.APPEARING, CubicBezierInterpolator.EASE_OUT_QUINT);
@@ -297,11 +293,10 @@ public class LinkEditActivity extends BaseFragment {
         transition.setInterpolator(LayoutTransition.DISAPPEARING, CubicBezierInterpolator.EASE_OUT_QUINT);
         linearLayout.setLayoutTransition(transition);
         linearLayout.setOrientation(LinearLayout.VERTICAL);
-        linearLayout.setPadding(dp(12), dp(4), dp(12), dp(79 + 12));
+        linearLayout.setPadding(0, 0, 0, dp(79));
         scrollView.addView(linearLayout);
 
         buttonTextView = new TextView(context);
-        ScaleStateListAnimator.apply(buttonTextView, 0.02f, 1.5f);
 
         buttonTextView.setPadding(dp(34), 0, dp(34), 0);
         buttonTextView.setGravity(Gravity.CENTER);
@@ -357,7 +352,8 @@ public class LinkEditActivity extends BaseFragment {
             });
             linearLayout.addView(approveCell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 56));
 
-            approveHintCell = new TextInfoPrivacyCell(context, 12, resourceProvider);
+            approveHintCell = new TextInfoPrivacyCell(context);
+            approveHintCell.setBackground(Theme.getThemedDrawableByKey(context, R.drawable.greydivider, Theme.key_windowBackgroundGrayShadow));
             approveHintCell.setText(getString(R.string.ApproveNewMembersDescription));
             linearLayout.addView(approveHintCell);
 
@@ -448,7 +444,7 @@ public class LinkEditActivity extends BaseFragment {
                 linearLayout.addView(subEditPriceCell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48));
                 subEditPriceCell.setVisibility(View.GONE);
 
-                subInfoCell = new TextInfoPrivacyCell(context, 12, resourceProvider);
+                subInfoCell = new TextInfoPrivacyCell(context);
                 if (inviteToEdit != null) {
                     subInfoCell.setText(getString(R.string.RequireMonthlyFeeInfoFrozen));
                 } else {
@@ -470,7 +466,7 @@ public class LinkEditActivity extends BaseFragment {
         timeEditText.setGravity(Gravity.CENTER_VERTICAL);
         timeEditText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         timeEditText.setHint(getString(R.string.TimeLimitHint));
-        timeEditText.setOnClickListener(view -> AlertsCreator.createDatePickerDialog(context, getString(R.string.ExpireAfter), getString(R.string.SetTimeLimit), -1, (notify, scheduleDate, scheduleRepeatPeriod) -> chooseDate(scheduleDate)));
+        timeEditText.setOnClickListener(view -> AlertsCreator.createDatePickerDialog(context, getString(R.string.ExpireAfter), getString(R.string.SetTimeLimit), -1, (notify, scheduleDate) -> chooseDate(scheduleDate)));
 
         timeChooseView.setCallback(index -> {
             if (index < dispalyedDates.size()) {
@@ -483,7 +479,7 @@ public class LinkEditActivity extends BaseFragment {
         resetDates();
         linearLayout.addView(timeEditText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 50));
 
-        divider = new TextInfoPrivacyCell(context, 12, resourceProvider);
+        divider = new TextInfoPrivacyCell(context);
         divider.setText(getString(R.string.TimeLimitHelp));
         linearLayout.addView(divider);
 
@@ -555,7 +551,7 @@ public class LinkEditActivity extends BaseFragment {
         });
         linearLayout.addView(usesEditText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 50));
 
-        dividerUses = new TextInfoPrivacyCell(context, 12, resourceProvider);
+        dividerUses = new TextInfoPrivacyCell(context);
         dividerUses.setText(getString(R.string.UsesLimitHelp));
         linearLayout.addView(dividerUses);
 
@@ -589,7 +585,8 @@ public class LinkEditActivity extends BaseFragment {
         nameEditText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         linearLayout.addView(nameEditText, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 50));
 
-        dividerName = new TextInfoPrivacyCell(context, 12, resourceProvider);
+        dividerName = new TextInfoPrivacyCell(context);
+        dividerName.setBackground(Theme.getThemedDrawableByKey(context, R.drawable.greydivider_bottom, Theme.key_windowBackgroundGrayShadow));
         dividerName.setText(getString(R.string.LinkNameHelp));
         linearLayout.addView(dividerName);
 
@@ -634,7 +631,10 @@ public class LinkEditActivity extends BaseFragment {
 
         buttonTextView.setOnClickListener(this::onCreateClicked);
         buttonTextView.setTextColor(Theme.getColor(Theme.key_featuredStickers_buttonText));
-        buttonTextView.setBackground(Theme.createSimpleSelectorRoundRectDrawable(dp(24), Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
+
+        dividerUses.setBackgroundDrawable(Theme.getThemedDrawableByKey(context, R.drawable.greydivider_bottom, Theme.key_windowBackgroundGrayShadow));
+        divider.setBackgroundDrawable(Theme.getThemedDrawableByKey(context, R.drawable.greydivider, Theme.key_windowBackgroundGrayShadow));
+        buttonTextView.setBackgroundDrawable(Theme.createSimpleSelectorRoundRectDrawable(dp(6), Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
 
         usesEditText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
         usesEditText.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
@@ -972,6 +972,7 @@ public class LinkEditActivity extends BaseFragment {
         usesChooseView.setVisibility(isVisible ? View.VISIBLE : View.GONE);
         usesEditText.setVisibility(isVisible ? View.VISIBLE : View.GONE);
         dividerUses.setVisibility(isVisible ? View.VISIBLE : View.GONE);
+        divider.setBackground(Theme.getThemedDrawableByKey(getParentActivity(), isVisible ? R.drawable.greydivider : R.drawable.greydivider_bottom, Theme.key_windowBackgroundGrayShadow));
     }
 
     public interface Callback {
@@ -997,6 +998,8 @@ public class LinkEditActivity extends BaseFragment {
         ThemeDescription.ThemeDescriptionDelegate descriptionDelegate = () -> {
             if (dividerUses != null) {
                 Context context = dividerUses.getContext();
+                dividerUses.setBackgroundDrawable(Theme.getThemedDrawableByKey(context, R.drawable.greydivider_bottom, Theme.key_windowBackgroundGrayShadow));
+                divider.setBackgroundDrawable(Theme.getThemedDrawableByKey(context, R.drawable.greydivider, Theme.key_windowBackgroundGrayShadow));
                 buttonTextView.setBackgroundDrawable(Theme.createSimpleSelectorRoundRectDrawable(dp(6), Theme.getColor(Theme.key_featuredStickers_addButton), Theme.getColor(Theme.key_featuredStickers_addButtonPressed)));
 
                 usesEditText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
@@ -1010,6 +1013,7 @@ public class LinkEditActivity extends BaseFragment {
                 }
 
                 createTextView.setTextColor(Theme.getColor(Theme.key_actionBarDefaultTitle));
+                dividerName.setBackground(Theme.getThemedDrawableByKey(context, R.drawable.greydivider_bottom, Theme.key_windowBackgroundGrayShadow));
                 nameEditText.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
                 nameEditText.setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText));
             }
@@ -1036,6 +1040,7 @@ public class LinkEditActivity extends BaseFragment {
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_actionBarDefaultIcon));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_TITLECOLOR, null, null, null, null, Theme.key_actionBarDefaultTitle));
         themeDescriptions.add(new ThemeDescription(actionBar, ThemeDescription.FLAG_AB_SELECTORCOLOR, null, null, null, null, Theme.key_actionBarDefaultSelector));
+        themeDescriptions.add(new ThemeDescription(null, 0, null, null, null, descriptionDelegate, Theme.key_windowBackgroundGrayShadow));
         themeDescriptions.add(new ThemeDescription(null, 0, null, null, null, descriptionDelegate, Theme.key_featuredStickers_addButton));
         themeDescriptions.add(new ThemeDescription(null, 0, null, null, null, descriptionDelegate, Theme.key_featuredStickers_addButtonPressed));
         themeDescriptions.add(new ThemeDescription(null, 0, null, null, null, descriptionDelegate, Theme.key_windowBackgroundWhiteBlackText));

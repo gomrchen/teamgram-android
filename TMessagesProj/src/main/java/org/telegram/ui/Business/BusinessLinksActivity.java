@@ -78,17 +78,6 @@ public class BusinessLinksActivity extends UniversalFragment implements Notifica
 
     private static AlertDialog currentDialog;
 
-    @Override
-    public View createView(Context context) {
-        super.createView(context);
-
-        listView.setSections();
-        listView.adapter.setApplyBackground(false);
-        actionBar.setAdaptiveBackground(listView);
-
-        return fragmentView;
-    }
-
     public static void openRenameAlert(Context context, int currentAccount, TL_account.TL_businessChatLink link, Theme.ResourcesProvider resourcesProvider, boolean forceNotAdaptive) {
         BaseFragment fragment = LaunchActivity.getLastFragment();
         Activity activity = AndroidUtilities.findActivity(context);
@@ -247,9 +236,9 @@ public class BusinessLinksActivity extends UniversalFragment implements Notifica
         editText.setSelection(editText.getText().length());
     }
 
-    public static boolean closeRenameAlert(boolean invoked) {
+    public static boolean closeRenameAlert() {
         if (currentDialog != null && currentDialog.isShowing()) {
-            if (invoked) currentDialog.dismiss();
+            currentDialog.dismiss();
             return true;
         }
         return false;
@@ -277,12 +266,11 @@ public class BusinessLinksActivity extends UniversalFragment implements Notifica
     }
 
     @Override
-    public boolean onBackPressed(boolean invoked) {
-        if (currentDialog != null && currentDialog.isShowing()) {
-            if (invoked) currentDialog.dismiss();
+    public boolean onBackPressed() {
+        if (closeRenameAlert()) {
             return false;
         }
-        return super.onBackPressed(invoked);
+        return super.onBackPressed();
     }
 
     @Override
@@ -421,7 +409,6 @@ public class BusinessLinksActivity extends UniversalFragment implements Notifica
                     button.setTextColor(getThemedColor(Theme.key_text_RedBold));
                 }
             });
-            options.setScrimViewBackground(listView.getClipBackground(view));
             options.show();
             return true;
         }

@@ -18,6 +18,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.net.Network;
@@ -28,9 +29,11 @@ import android.os.Handler;
 import android.os.PowerManager;
 import android.os.SystemClock;
 import android.telephony.TelephonyManager;
+import android.util.Pair;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.multidex.MultiDex;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -40,12 +43,15 @@ import org.telegram.messenger.voip.VideoCapturerDevice;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.Adapters.DrawerLayoutAdapter;
 import org.telegram.ui.Components.ForegroundDetector;
-import org.telegram.ui.Components.ItemOptions;
+import org.telegram.ui.Components.Premium.boosts.BoostRepository;
+import org.telegram.ui.IUpdateButton;
 import org.telegram.ui.IUpdateLayout;
 import org.telegram.ui.LauncherIconController;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Locale;
 
 public class ApplicationLoader extends Application {
@@ -80,6 +86,7 @@ public class ApplicationLoader extends Application {
     @Override
     protected void attachBaseContext(Context base) {
         super.attachBaseContext(base);
+        MultiDex.install(this);
     }
 
     public static ILocationServiceProvider getLocationServiceProvider() {
@@ -136,10 +143,6 @@ public class ApplicationLoader extends Application {
         return applicationLoaderInstance.isBeta();
     }
 
-    public static boolean isAndroidTestEnvironment() {
-        return applicationLoaderInstance.isAndroidTestEnv();
-    }
-
     protected boolean isHuaweiBuild() {
         return false;
     }
@@ -149,10 +152,6 @@ public class ApplicationLoader extends Application {
     }
 
     protected boolean isBeta() {
-        return false;
-    }
-
-    protected boolean isAndroidTestEnv() {
         return false;
     }
 
@@ -172,19 +171,6 @@ public class ApplicationLoader extends Application {
             FileLog.e(e);
         }
         return new File("/data/data/org.telegram.messenger/files");
-    }
-
-    public static File getFilesDirFixed(String child) {
-        try {
-            File path = getFilesDirFixed();
-            File dir = new File(path, child);
-            dir.mkdirs();
-
-            return dir;
-        } catch (Exception e) {
-            FileLog.e(e);
-        }
-        return null;
     }
 
     public static void postInitApplication() {
@@ -641,7 +627,11 @@ public class ApplicationLoader extends Application {
         return false;
     }
 
-    public IUpdateLayout takeUpdateLayout(Activity activity, ViewGroup sideMenuContainer) {
+    public IUpdateLayout takeUpdateLayout(Activity activity, ViewGroup sideMenu, ViewGroup sideMenuContainer) {
+        return null;
+    }
+
+    public IUpdateButton takeUpdateButton(Context context) {
         return null;
     }
 
@@ -661,8 +651,8 @@ public class ApplicationLoader extends Application {
         return false;
     }
 
-    public void addItemOptions(ItemOptions itemOptions) {
-
+    public boolean extendDrawer(ArrayList<DrawerLayoutAdapter.Item> items) {
+        return false;
     }
 
     public boolean checkRequestPermissionResult(int requestCode, String[] permissions, int[] grantResults) {

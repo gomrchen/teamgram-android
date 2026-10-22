@@ -81,7 +81,7 @@ public class PullForegroundDrawable {
     private View cell;
     private RecyclerListView listView;
 
-    private float pullProgress;
+    public float pullProgress;
 
     public float outCy;
     public float outCx;
@@ -238,13 +238,13 @@ public class PullForegroundDrawable {
         int diameter = AndroidUtilities.dp(18);
 
         int overscroll = (int) getViewOffset();
-        int visibleHeight = (int) (cell.getHeight() * getPullProgress());
+        int visibleHeight = (int) (cell.getHeight() * pullProgress);
 
         float bounceP = bounceIn ? (0.07f * bounceProgress) - 0.05f : 0.02f * bounceProgress;
 
         checkTextLayouts(cell.getWidth() - startPadding * 4 - AndroidUtilities.dp(16));
 
-        updateTextProgress(getPullProgress());
+        updateTextProgress(pullProgress);
 
         float outProgressHalf = outProgress * 2f;
         if (outProgressHalf > 1f) {
@@ -268,7 +268,7 @@ public class PullForegroundDrawable {
         canvas.save();
 
         if (header) {
-            canvas.clipRect(0, 0 /*fix overscroll*/, listView.getMeasuredWidth(), overscroll + 1);
+            canvas.clipRect(0, -AndroidUtilities.dp(4) /*fix overscroll*/, listView.getMeasuredWidth(), overscroll + 1);
         }
         if (outProgress == 0f) {
             if (!(accentRevalProgress == 1f || accentRevalProgressOut == 1)) {
@@ -356,7 +356,7 @@ public class PullForegroundDrawable {
             canvas.restore();
         }
 
-        if (getPullProgress() > 0f) {
+        if (pullProgress > 0f) {
             textIn();
         }
 
@@ -707,19 +707,6 @@ public class PullForegroundDrawable {
 
     public Paint getBackgroundPaint() {
         return backgroundPaint;
-    }
-
-    public float getPullProgress() {
-        return pullProgress;
-    }
-
-    public void setPullProgress(float pullProgress) {
-        if (this.pullProgress != pullProgress) {
-            this.pullProgress = pullProgress;
-            if (cell != null) {
-                cell.invalidate();
-            }
-        }
     }
 
     private class ArrowDrawable extends Drawable {

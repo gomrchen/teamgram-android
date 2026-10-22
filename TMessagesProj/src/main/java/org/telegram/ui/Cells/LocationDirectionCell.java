@@ -9,9 +9,7 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.ActionBar.Theme;
-import org.telegram.ui.BadWayToMakeButtonRound;
 import org.telegram.ui.Components.LayoutHelper;
-import org.telegram.ui.Components.ScaleStateListAnimator;
 
 @SuppressWarnings("FieldCanBeLocal")
 public class LocationDirectionCell extends FrameLayout {
@@ -38,9 +36,6 @@ public class LocationDirectionCell extends FrameLayout {
         buttonTextView.setLeftDrawable(R.drawable.filled_directions);
         buttonTextView.setTypeface(AndroidUtilities.bold());
         frameLayout.addView(buttonTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-
-        BadWayToMakeButtonRound.round(frameLayout);
-        ScaleStateListAnimator.apply(frameLayout, 0.02f, 1.2f);
     }
 
     @Override

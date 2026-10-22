@@ -37,7 +37,6 @@ import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.RLottieDrawable;
 import org.telegram.ui.Components.ReactionsContainerLayout;
-import org.telegram.ui.Components.conference.message.GroupCallMessageCell;
 import org.telegram.ui.SelectAnimatedEmojiDialog;
 
 import java.util.ArrayList;
@@ -332,13 +331,8 @@ public class ReactionsEffectOverlay {
                         if (messageCell.drawPinnedBottom && !messageCell.shouldDrawTimeOnMedia()) {
                             toY += AndroidUtilities.dp(2);
                         }
-                        toY += messageCell.getPaddingTop();
                     } else if (drawingCell instanceof ChatActionCell) {
                         reactionButton = ((ChatActionCell) drawingCell).getReactionButton(reaction);
-                        toY += drawingCell.getPaddingTop();
-                    } else if (drawingCell instanceof GroupCallMessageCell) {
-                        toX += ((GroupCallMessageCell) drawingCell).getReactionCenterX();
-                        toY += drawingCell.getMeasuredHeight() / 2f;
                     }
                     if (reactionButton != null) {
                         toX += reactionButton.drawingImageRect.left;
@@ -360,17 +354,11 @@ public class ReactionsEffectOverlay {
                 if (fragment != null && fragment.getParentActivity() != null && fragment.getFragmentView() != null && fragment.getFragmentView().getParent() != null && fragment.getFragmentView().getVisibility() == View.VISIBLE && fragment.getFragmentView() != null) {
                     fragment.getFragmentView().getLocationOnScreen(loc);
                     setAlpha(((View) fragment.getFragmentView().getParent()).getAlpha());
-                } else if (!isStories && !(drawingCell instanceof GroupCallMessageCell)){
+                } else if (!isStories){
                     return;
                 }
-                float previewX, previewY;
-                if (drawingCell instanceof GroupCallMessageCell) {
-                    previewX = toX - emojiSize / 2f;
-                    previewY = toY - emojiSize / 2f;
-                } else {
-                    previewX = toX - (emojiSize - toH) / 2f;
-                    previewY = toY - (emojiSize - toH) / 2f;
-                }
+                float previewX = toX - (emojiSize - toH) / 2f;
+                float previewY = toY - (emojiSize - toH) / 2f;
                 if (isStories && animationType == LONG_ANIMATION) {
                     previewX += AndroidUtilities.dp(40);
                 }
@@ -825,9 +813,7 @@ public class ReactionsEffectOverlay {
             currentShortOverlay.startTime = System.currentTimeMillis();
             if (currentShortOverlay.animationType == SHORT_ANIMATION && System.currentTimeMillis() - lastHapticTime > 200) {
                 lastHapticTime = System.currentTimeMillis();
-                if (currentShortOverlay.cell != null) {
-                    currentShortOverlay.cell.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
-                }
+                currentShortOverlay.cell.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP);
             }
         }
     }

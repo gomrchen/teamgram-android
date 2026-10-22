@@ -28,26 +28,17 @@ public class RecyclerListViewScroller {
             valueAnimator.removeAllListeners();
             valueAnimator.cancel();
         }
-
-        final int[] total = new int[1];
-
         lastScrolled = 0;
-        valueAnimator = ValueAnimator.ofInt(0, dy);
+        valueAnimator = ValueAnimator.ofFloat(0, 1f);
         valueAnimator.addUpdateListener(animation -> {
-            int currentScroll = (int) animation.getAnimatedValue();
-            int sY = currentScroll - lastScrolled;
-
-            recyclerListView.scrollBy(0, sY);
-            total[0] += sY;
-
+            int currentScroll = (int) (dy * (float) animation.getAnimatedValue());
+            recyclerListView.scrollBy(0, currentScroll - lastScrolled);
             lastScrolled = currentScroll;
         });
         valueAnimator.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-
-
-                recyclerListView.scrollBy(0, dy - total[0]);
+                recyclerListView.scrollBy(0, dy - lastScrolled);
                 valueAnimator = null;
             }
         });

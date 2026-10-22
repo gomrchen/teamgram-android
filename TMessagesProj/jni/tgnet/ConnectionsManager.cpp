@@ -586,11 +586,6 @@ uint32_t ConnectionsManager::getCurrentDatacenterId() {
     return datacenter != nullptr ? datacenter->getDatacenterId() : INT_MAX;
 }
 
-int64_t ConnectionsManager::getCurrentAuthKeyId() {
-    Datacenter *datacenter = getDatacenterWithId(DEFAULT_DATACENTER_ID);
-    return datacenter != nullptr ? datacenter->getPermanentAuthKeyId() : 0;
-}
-
 bool ConnectionsManager::isTestBackend() {
     return testBackend;
 }
@@ -1245,7 +1240,7 @@ void ConnectionsManager::processServerResponse(TLObject *message, int64_t messag
         }
         RpcError *error = hasResult ? dynamic_cast<RpcError *>(response->result.get()) : nullptr;
         if (error != nullptr) {
-            if (LOGS_ENABLED) DEBUG_E("message_id %lld req_msg_id %lld connection(%p, account%u, dc%u, type %d) rpc error %d: %s", messageId, resultMid, connection, instanceNum, datacenter->getDatacenterId(), connection->getConnectionType(), error->error_code, error->error_message.c_str());
+            if (LOGS_ENABLED) DEBUG_E("message_id %lld connection(%p, account%u, dc%u, type %d) rpc error %d: %s", messageId, connection, instanceNum, datacenter->getDatacenterId(), connection->getConnectionType(), error->error_code, error->error_message.c_str());
             if (error->error_code == 303) {
                 uint32_t migrateToDatacenterId = DEFAULT_DATACENTER_ID;
 
@@ -1277,7 +1272,7 @@ void ConnectionsManager::processServerResponse(TLObject *message, int64_t messag
                 if (!request->respondsToMessageId(resultMid)) {
                     continue;
                 }
-                if (LOGS_ENABLED) DEBUG_D("got response for request %p, req_id = %d - %s (messageId = 0x%" PRIx64 ")", request->rawRequest, request->requestToken, typeid(*request->rawRequest).name(), request->messageId);
+                if (LOGS_ENABLED) DEBUG_D("got response for request %p - %s (messageId = 0x%" PRIx64 ")", request->rawRequest, typeid(*request->rawRequest).name(), request->messageId);
                 bool discardResponse = false;
                 bool isError = false;
                 bool allowInitConnection = true;
@@ -1733,7 +1728,7 @@ void ConnectionsManager::processServerResponse(TLObject *message, int64_t messag
             processServerResponse(object, messageId, messageSeqNo, messageSalt, connection, innerMsgId, containerMessageId);
             delete object;
         } else {
-            if (LOGS_ENABLED) DEBUG_D("connection(%p, account%u, dc%u, type %d) received unparsed from gzip object on 0x%" PRIx64, connection, instanceNum, datacenter->getDatacenterId(), connection->getConnectionType(), messageId);
+            if (LOGS_ENABLED) DEBUG_D("connection(%p, account%u, dc%u, type %d) received unparsed from gzip object on %0x" PRIx64, connection, instanceNum, datacenter->getDatacenterId(), connection->getConnectionType(), messageId);
             if (delegate != nullptr) {
                 delegate->onUnparsedMessageReceived(messageId, data, connection->getConnectionType(), instanceNum);
             }
@@ -1817,7 +1812,7 @@ void ConnectionsManager::initDatacenters() {
     if (!testBackend) {
         if (datacenters.find(1) == datacenters.end()) {
             datacenter = new Datacenter(instanceNum, 1);
-            datacenter->addAddressAndPort("43.155.11.190", 10443, 0, "");
+            datacenter->addAddressAndPort("192.168.1.22", 10443, 0, "");
             // datacenter->addAddressAndPort("149.154.175.50", 443, 0, "");
             // datacenter->addAddressAndPort("2001:b28:f23d:f001:0000:0000:0000:000a", 443, 1, "");
             datacenters[1] = datacenter;
@@ -1856,7 +1851,7 @@ void ConnectionsManager::initDatacenters() {
     } else {
         if (datacenters.find(1) == datacenters.end()) {
             datacenter = new Datacenter(instanceNum, 1);
-            datacenter->addAddressAndPort("43.155.11.190", 10443, 0, "");
+            datacenter->addAddressAndPort("192.168.1.22", 10443, 0, "");
             // datacenter->addAddressAndPort("149.154.175.40", 443, 0, "");
             // datacenter->addAddressAndPort("2001:b28:f23d:f001:0000:0000:0000:000e", 443, 1, "");
             datacenters[1] = datacenter;
@@ -2389,7 +2384,6 @@ void ConnectionsManager::requestSaltsForDatacenter(Datacenter *datacenter, bool 
 }
 
 void ConnectionsManager::clearRequestsForDatacenter(Datacenter *datacenter, HandshakeType type) {
-    if (datacenter == nullptr) return;
     for (auto & runningRequest : runningRequests) {
         Request *request = runningRequest.get();
         Datacenter *requestDatacenter = getDatacenterWithId(request->datacenterId);
@@ -2592,15 +2586,13 @@ void ConnectionsManager::processRequestQueue(uint32_t connectionTypes, uint32_t 
             forceThisRequest = false;
         }
 
-        bool failedButTimeToTryAgain = (
+        if ((forceThisRequest || (
             abs(currentTime - request->startTime) > maxTimeout && (
                 currentTime >= request->minStartTime ||
                 (request->failedByFloodWait != 0 && (request->minStartTime - currentTime) > request->failedByFloodWait) ||
                 (request->failedByFloodWait == 0 && abs(currentTime - request->minStartTime) >= 60)
             )
-        );
-
-        if ((forceThisRequest || failedButTimeToTryAgain) && !request->awaitingIntegrityCheck && !request->awaitingCaptchaCheck) {
+        )) && !request->awaitingIntegrityCheck && !request->awaitingCaptchaCheck) {
             if (!forceThisRequest && request->connectionToken > 0) {
                 if ((request->connectionType & ConnectionTypeGeneric || request->connectionType & ConnectionTypeTemp) && request->connectionToken == connection->getConnectionToken()) {
 //                    if (LOGS_ENABLED) DEBUG_D("request token is valid, not retrying %s (%p)", typeInfo.name(), request->rawRequest);
@@ -2623,15 +2615,17 @@ void ConnectionsManager::processRequestQueue(uint32_t connectionTypes, uint32_t 
             request->retryCount++;
 
             if (!request->failedBySalt) {
-                if (request->connectionType & ConnectionTypeDownload && (!request->failedByFloodWait || !failedButTimeToTryAgain)) {
-                    uint32_t retryMax;
-                    if (request->requestFlags & RequestFlagForceDownload) {
-                        retryMax = 10;
-                    } else {
-                        retryMax = 6;
+                if (request->connectionType & ConnectionTypeDownload) {
+                    uint32_t retryMax = 10;
+                    if (!(request->requestFlags & RequestFlagForceDownload)) {
+                        if (request->failedByFloodWait) {
+                            retryMax = 2;
+                        } else {
+                            retryMax = 6;
+                        }
                     }
                     if (request->retryCount >= retryMax && !request->premiumFloodWait) {
-                        if (LOGS_ENABLED) DEBUG_E("timed out %s (%d/%d), req_id = %d, message_id = 0x%" PRIx64, typeInfo.name(), request->retryCount, retryMax, request->requestToken, request->messageId);
+                        if (LOGS_ENABLED) DEBUG_E("timed out %s, message_id = 0x%" PRIx64, typeInfo.name(), request->messageId);
                         auto error = new TL_error();
                         error->code = -123;
                         error->text = "RETRY_LIMIT";

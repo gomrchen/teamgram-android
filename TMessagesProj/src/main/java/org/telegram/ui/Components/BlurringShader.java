@@ -749,6 +749,7 @@ public class BlurringShader {
         private final BlurManager manager;
         private final View view;
 
+        public RenderNode renderNode;
         public final ColorMatrix colorMatrix;
         public boolean xfer;
 

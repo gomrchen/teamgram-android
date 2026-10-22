@@ -385,9 +385,9 @@ public class ChatSelectionReactionMenuOverlay extends FrameLayout {
         }
     }
 
-    public boolean onBackPressed(boolean invoked) {
+    public boolean onBackPressed() {
         if (reactionsContainerLayout != null && reactionsContainerLayout.getReactionsWindow() != null) {
-            if (invoked) reactionsContainerLayout.dismissWindow();
+            reactionsContainerLayout.dismissWindow();
             return false;
         }
         return true;

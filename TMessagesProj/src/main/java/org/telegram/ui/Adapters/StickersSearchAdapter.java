@@ -350,7 +350,7 @@ public class StickersSearchAdapter extends RecyclerListView.SelectionAdapter {
                 view = new EmptyCell(context);
                 break;
             case 2:
-                view = new StickerSetNameCell(context, false, true, resourcesProvider, false);
+                view = new StickerSetNameCell(context, false, true, resourcesProvider);
                 break;
             case 3:
                 view = new FeaturedStickerSetInfoCell(context, 17, true, true, resourcesProvider);

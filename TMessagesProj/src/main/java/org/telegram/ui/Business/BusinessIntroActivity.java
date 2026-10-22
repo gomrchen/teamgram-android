@@ -216,15 +216,12 @@ public class BusinessIntroActivity extends UniversalFragment implements Notifica
         greetingsView.setPreview("", "");
 
         super.createView(context);
-        listView.setSections();
-        listView.adapter.setApplyBackground(false);
-        actionBar.setAdaptiveBackground(listView);
 
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override
             public void onItemClick(int id) {
                 if (id == -1) {
-                    if (onBackPressed(true)) {
+                    if (onBackPressed()) {
                         finishFragment();
                     }
                 } else if (id == done_button) {
@@ -487,19 +484,17 @@ public class BusinessIntroActivity extends UniversalFragment implements Notifica
     }
 
     @Override
-    public boolean onBackPressed(boolean invoked) {
+    public boolean onBackPressed() {
         if (hasChanges()) {
-            if (invoked) {
-                final AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-                builder.setTitle(LocaleController.getString(R.string.UnsavedChanges));
-                builder.setMessage(LocaleController.getString(R.string.BusinessIntroUnsavedChanges));
-                builder.setPositiveButton(LocaleController.getString(R.string.ApplyTheme), (dialogInterface, i) -> processDone());
-                builder.setNegativeButton(LocaleController.getString(R.string.PassportDiscard), (dialog, which) -> finishFragment());
-                showDialog(builder.create());
-            }
+            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+            builder.setTitle(LocaleController.getString(R.string.UnsavedChanges));
+            builder.setMessage(LocaleController.getString(R.string.BusinessIntroUnsavedChanges));
+            builder.setPositiveButton(LocaleController.getString(R.string.ApplyTheme), (dialogInterface, i) -> processDone());
+            builder.setNegativeButton(LocaleController.getString(R.string.PassportDiscard), (dialog, which) -> finishFragment());
+            showDialog(builder.create());
             return false;
         }
-        return super.onBackPressed(invoked);
+        return super.onBackPressed();
     }
 
 
@@ -549,7 +544,7 @@ public class BusinessIntroActivity extends UniversalFragment implements Notifica
             };
             chatAttachAlert.setDelegate(new ChatAttachAlert.ChatAttachViewDelegate() {
                 @Override
-                public void didPressedButton(int button, boolean arg, boolean notify, int scheduleDate, int scheduleRepeatPeriod, long effectId, boolean invertMedia, boolean forceDocument, long payStars) {
+                public void didPressedButton(int button, boolean arg, boolean notify, int scheduleDate, long effectId, boolean invertMedia, boolean forceDocument, long payStars) {
 
                 }
                 @Override
@@ -580,17 +575,6 @@ public class BusinessIntroActivity extends UniversalFragment implements Notifica
         if (id == NotificationCenter.userInfoDidLoad) {
             setValue();
         }
-    }
-
-    @Override
-    public boolean isSupportEdgeToEdge() {
-        return true;
-    }
-
-    @Override
-    public void onInsets(int left, int top, int right, int bottom) {
-        listView.setPadding(0, 0, 0, bottom);
-        listView.setClipToPadding(false);
     }
 
 }

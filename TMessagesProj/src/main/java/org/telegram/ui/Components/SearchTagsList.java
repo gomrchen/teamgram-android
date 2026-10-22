@@ -346,15 +346,13 @@ public class SearchTagsList extends BlurredFrameLayout implements NotificationCe
     }
 
     private static AlertDialog currentDialog;
-    public static boolean onBackPressedRenameTagAlert(boolean invoked) {
+    public static boolean onBackPressedRenameTagAlert() {
         if (currentDialog != null) {
-            if (invoked) {
-                currentDialog.dismiss();
-                currentDialog = null;
-            }
-            return false;
+            currentDialog.dismiss();
+            currentDialog = null;
+            return true;
         }
-        return true;
+        return false;
     }
     public static void openRenameTagAlert(Context context, int currentAccount, TLRPC.Reaction reaction, Theme.ResourcesProvider resourcesProvider, boolean forceNotAdaptive) {
         BaseFragment fragment = LaunchActivity.getLastFragment();

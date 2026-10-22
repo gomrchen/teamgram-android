@@ -11,7 +11,6 @@ package org.telegram.ui.ActionBar;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -19,7 +18,6 @@ import android.widget.LinearLayout;
 import androidx.annotation.Nullable;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.Utilities;
 import org.telegram.ui.Adapters.FiltersView;
 import org.telegram.ui.Components.RLottieDrawable;
 
@@ -153,10 +151,6 @@ public class ActionBarMenu extends LinearLayout {
         return lazilyAddItem(id, icon, null, isActionMode ? parentActionBar.itemsActionModeBackgroundColor : parentActionBar.itemsBackgroundColor, null, AndroidUtilities.dp(48), null, resourcesProvider);
     }
 
-    public LazyItem lazilyAddItem(int id, Drawable drawable, Theme.ResourcesProvider resourcesProvider) {
-        return lazilyAddItem(id, 0, null, isActionMode ? parentActionBar.itemsActionModeBackgroundColor : parentActionBar.itemsBackgroundColor, drawable, AndroidUtilities.dp(48), null, resourcesProvider);
-    }
-
     public LazyItem lazilyAddItem(int id, int icon, CharSequence text, int backgroundColor, Drawable drawable, int width, CharSequence title, Theme.ResourcesProvider resourcesProvider) {
         if (ids == null) {
             ids = new ArrayList<>();
@@ -199,7 +193,6 @@ public class ActionBarMenu extends LinearLayout {
 
         int visibility = GONE;
         ActionBarMenuItem cell;
-        ArrayList<Utilities.Callback<ActionBarMenuItem>> onViews;
 
         public void setVisibility(int visibility) {
             if (this.visibility != visibility) {
@@ -326,21 +319,6 @@ public class ActionBarMenu extends LinearLayout {
                 cell.setSearchFieldHint(searchFieldHint);
             }
             cell.setAlpha(alpha);
-
-            if (onViews != null) {
-                for (Utilities.Callback<ActionBarMenuItem> onView : onViews)
-                    onView.run(cell);
-                onViews = null;
-            }
-        }
-
-        public void onView(Utilities.Callback<ActionBarMenuItem> onView) {
-            if (cell != null) {
-                onView.run(cell);
-                return;
-            }
-            if (onViews == null) onViews = new ArrayList<>();
-            onViews.add(onView);
         }
     }
 
@@ -573,17 +551,6 @@ public class ActionBarMenu extends LinearLayout {
         return w;
     }
 
-    public int getVisibleItemsMeasuredWidthWithAlpha() {
-        float w = 0;
-        for (int i = 0, count = getChildCount(); i < count; i++) {
-            View view = getChildAt(i);
-            if (view instanceof ActionBarMenuItem && view.getVisibility() == View.VISIBLE) {
-                w += view.getMeasuredWidth() * view.getAlpha();
-            }
-        }
-        return (int) w;
-    }
-
     public boolean searchFieldVisible() {
         int count = getChildCount();
         for (int a = 0; a < count; a++) {
@@ -630,15 +597,5 @@ public class ActionBarMenu extends LinearLayout {
         if (onLayoutListener != null) {
             onLayoutListener.run();
         }
-    }
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        return super.dispatchTouchEvent(ev);
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        return super.onTouchEvent(event);
     }
 }

@@ -2,6 +2,7 @@ package org.telegram.ui.ActionBar;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.lerp;
+import static org.telegram.messenger.AndroidUtilities.scaleRect;
 import static org.telegram.messenger.LocaleController.getString;
 import static org.telegram.messenger.Utilities.clamp01;
 
@@ -25,6 +26,7 @@ import android.graphics.SurfaceTexture;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.PixelCopy;
 import android.view.Surface;
@@ -37,13 +39,12 @@ import android.widget.OverScroller;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.google.zxing.common.detector.MathUtils;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.ui.Components.AnimatedFloat;
 import org.telegram.ui.Components.ButtonBounce;
@@ -53,7 +54,7 @@ import org.telegram.ui.GradientClip;
 
 import java.util.ArrayList;
 
-public class BottomSheetTabsOverlay extends View {
+public class BottomSheetTabsOverlay extends FrameLayout {
 
     public interface Sheet {
         public SheetView getWindowView();
@@ -99,7 +100,6 @@ public class BottomSheetTabsOverlay extends View {
 
     private final OverScroller scroller;
     private final int maximumVelocity, minimumVelocity;
-    private int navigationBarInset;
 
     public BottomSheetTabsOverlay(Context context) {
         super(context);
@@ -110,20 +110,20 @@ public class BottomSheetTabsOverlay extends View {
         ViewConfiguration configuration = ViewConfiguration.get(context);
         maximumVelocity = configuration.getScaledMaximumFlingVelocity();
         minimumVelocity = configuration.getScaledMinimumFlingVelocity();
-
-        ViewCompat.setOnApplyWindowInsetsListener(this, this::onApplyWindowInsets);
-    }
-
-    @NonNull
-    private WindowInsetsCompat onApplyWindowInsets(@NonNull View ignoredV, @NonNull WindowInsetsCompat insets) {
-        navigationBarInset = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
-        invalidate();
-
-        return WindowInsetsCompat.CONSUMED;
     }
 
     public boolean isOpened() {
         return openProgress > .1f;
+    }
+
+    @Override
+    protected boolean drawChild(Canvas canvas, View child, long drawingTime) {
+        return false;
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(MeasureSpec.getSize(heightMeasureSpec) + AndroidUtilities.navigationBarHeight, MeasureSpec.EXACTLY));
     }
 
     public void setTabsView(BottomSheetTabs tabsView) {
@@ -162,7 +162,9 @@ public class BottomSheetTabsOverlay extends View {
                 hitCloseAllButton = closeAllButtonBackground != null && closeAllButtonBackground.getBounds().contains((int) event.getX(), (int) event.getY());
                 if (hitCloseAllButton) pressTab = null;
                 if (closeAllButtonBackground != null) {
-                    closeAllButtonBackground.setHotspot(event.getX(), event.getY());
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        closeAllButtonBackground.setHotspot(event.getX(), event.getY());
+                    }
                     closeAllButtonBackground.setState(hitCloseAllButton ? new int[]{android.R.attr.state_pressed, android.R.attr.state_enabled} : new int[] {});
                 }
                 verticallyScrolling = false;
@@ -171,7 +173,7 @@ public class BottomSheetTabsOverlay extends View {
                 if (pressTab != null) {
                     pressTab.cancelDismissAnimator();
                     pressTabClose = pressTab.tabDrawable.closeRipple.getBounds().contains((int) (event.getX() - pressTab.clickBounds.left), (int) (event.getY() - pressTab.clickBounds.top - dp(24)));
-                    if (pressTabClose) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && pressTabClose) {
                         pressTab.tabDrawable.closeRipple.setHotspot((int) (event.getX() - rect.left), (int) (event.getY() - rect.centerY()));
                     }
                     pressTab.setPressed(!pressTabClose);
@@ -652,7 +654,7 @@ public class BottomSheetTabsOverlay extends View {
         scrollAnimator.start();
     }
 
-    public boolean isOpen;
+    private boolean isOpen;
     private float openProgress;
     private ValueAnimator openAnimator;
     private void animateOpen(boolean open) {
@@ -705,10 +707,6 @@ public class BottomSheetTabsOverlay extends View {
             tabsView.getLocationOnScreen(pos);
             tabsView.getTabBounds(rect, 0);
             rect.offset(pos[0] - pos2[0], pos[1] - pos2[1]);
-
-            canvas.save();
-            canvas.clipRect(0, 0, getMeasuredWidth(), getMeasuredHeight() - navigationBarInset);
-
             float radius = dismissingSheet.getWindowView().drawInto(canvas, rect, dismissProgress, clipRect, dismissProgress, false);
 
             if (dismissingTab != null) {
@@ -722,8 +720,6 @@ public class BottomSheetTabsOverlay extends View {
                 dismissingTab.draw(canvas, rect, radius, dismissProgress, 1f);
                 canvas.restore();
             }
-
-            canvas.restore();
         }
     }
 
@@ -917,7 +913,7 @@ public class BottomSheetTabsOverlay extends View {
     }
 
     @Override
-    protected void dispatchDraw(@NonNull Canvas canvas) {
+    protected void dispatchDraw(Canvas canvas) {
         super.dispatchDraw(canvas);
 
         drawDismissingTab(canvas);
@@ -1105,15 +1101,18 @@ public class BottomSheetTabsOverlay extends View {
         hwCanvas.drawRenderNode(renderNode);
         surface.unlockCanvasAndPost(hwCanvas);
 
-        PixelCopy.request(surface, bitmap, copyResult -> {
-            if (copyResult == PixelCopy.SUCCESS) {
-                whenBitmapDone.run(bitmap);
-            } else {
-                bitmap.recycle();
-                whenBitmapDone.run(null);
+        PixelCopy.request(surface, bitmap, new PixelCopy.OnPixelCopyFinishedListener() {
+            @Override
+            public void onPixelCopyFinished(int copyResult) {
+                if (copyResult == PixelCopy.SUCCESS) {
+                    whenBitmapDone.run(bitmap);
+                } else {
+                    bitmap.recycle();
+                    whenBitmapDone.run(null);
+                }
+                surface.release();
+                surfaceTexture.release();
             }
-            surface.release();
-            surfaceTexture.release();
         }, new Handler());
     }
 
@@ -1136,15 +1135,18 @@ public class BottomSheetTabsOverlay extends View {
         view.draw(hwCanvas);
         surface.unlockCanvasAndPost(hwCanvas);
 
-        PixelCopy.request(surface, bitmap, copyResult -> {
-            if (copyResult == PixelCopy.SUCCESS) {
-                whenBitmapDone.run(bitmap);
-            } else {
-                bitmap.recycle();
-                whenBitmapDone.run(null);
+        PixelCopy.request(surface, bitmap, new PixelCopy.OnPixelCopyFinishedListener() {
+            @Override
+            public void onPixelCopyFinished(int copyResult) {
+                if (copyResult == PixelCopy.SUCCESS) {
+                    whenBitmapDone.run(bitmap);
+                } else {
+                    bitmap.recycle();
+                    whenBitmapDone.run(null);
+                }
+                surface.release();
+                surfaceTexture.release();
             }
-            surface.release();
-            surfaceTexture.release();
         }, new Handler());
     }
 

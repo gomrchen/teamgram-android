@@ -59,12 +59,9 @@ import org.telegram.ui.Components.CheckBox2;
 import org.telegram.ui.Components.ColoredImageSpan;
 import org.telegram.ui.Components.CombinedDrawable;
 import org.telegram.ui.Components.CubicBezierInterpolator;
-import org.telegram.ui.Components.Forum.ForumUtilities;
-import org.telegram.ui.Components.PhotoBubbleClip;
 import org.telegram.ui.Components.Premium.PremiumGradient;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.Text;
-import org.telegram.ui.FilterCreateActivity;
 import org.telegram.ui.NotificationsSettingsActivity;
 import org.telegram.ui.Stories.StoriesUtilities;
 
@@ -72,8 +69,6 @@ import java.util.Locale;
 
 public class ProfileSearchCell extends BaseCell implements NotificationCenter.NotificationCenterDelegate, Theme.Colorable {
 
-    public boolean dontDrawAvatar;
-    private PhotoBubbleClip bubbleClip;
     private CharSequence currentName;
     public ImageReceiver avatarImage;
     private AvatarDrawable avatarDrawable;
@@ -204,10 +199,6 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         ad = sponsoredPeer;
     }
 
-    private boolean allowEmojiStatus = true;
-    public void setAllowEmojiStatus(boolean allowEmojiStatus) {
-        this.allowEmojiStatus = allowEmojiStatus;
-    }
     public void setData(Object object, TLRPC.EncryptedChat ec, CharSequence n, CharSequence s, boolean needCount, boolean saved) {
         currentName = n;
         if (object instanceof TLRPC.User) {
@@ -368,20 +359,12 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         }
     }
 
-    private boolean callCellStyle;
-
-    public void setCallCellStyle() {
-        callCellStyle = true;
-        customPaints = true;
-    }
-
-
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         if (checkBox != null) {
             checkBox.measure(MeasureSpec.makeMeasureSpec(dp(24), MeasureSpec.EXACTLY), MeasureSpec.makeMeasureSpec(dp(24), MeasureSpec.EXACTLY));
         }
-        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), callCellStyle ? dp(56) : (dp(60) + (useSeparator ? 1 : 0)));
+        setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), dp(60) + (useSeparator ? 1 : 0));
     }
 
     @Override
@@ -413,7 +396,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
     }
 
     public void buildLayout() {
-        CharSequence nameString = null;
+        CharSequence nameString;
         TextPaint currentNamePaint;
 
         drawNameLock = false;
@@ -435,12 +418,6 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         } else if (chat != null) {
             dialog_id = -chat.id;
             drawCheck = chat.verified;
-            if (chat.monoforum) {
-                TLRPC.Chat mfChat = MessagesController.getInstance(currentAccount).getChat(chat.linked_monoforum_id);
-                if (mfChat != null) {
-                    drawCheck = mfChat.verified;
-                }
-            }
             if (!LocaleController.isRTL) {
                 nameLeft = dp(AndroidUtilities.leftBaseline);
             } else {
@@ -500,29 +477,17 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
 
         if (currentName != null) {
             nameString = currentName;
-        }
-        if (chat != null) {
-            if (chat.monoforum) {
-                TLRPC.Chat mfChat = MessagesController.getInstance(currentAccount).getChat(chat.linked_monoforum_id);
-                if (mfChat != null) {
-                    final SpannableStringBuilder sb = new SpannableStringBuilder(AndroidUtilities.escape(mfChat.title));
-                    sb.append(" ");
-                    final int index = sb.length();
-                    sb.append(getString(R.string.MonoforumSpan));
-                    sb.setSpan(new FilterCreateActivity.TextSpan(getString(R.string.MonoforumSpan), 9.33f, Theme.key_windowBackgroundWhiteGrayText, resourcesProvider), index, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    nameString = sb;
-                } else if (nameString == null) {
-                    nameString = AndroidUtilities.removeRTL(AndroidUtilities.removeDiacritics(chat.title));
-                }
-            } else if (nameString == null) {
-                nameString = AndroidUtilities.removeRTL(AndroidUtilities.removeDiacritics(chat.title));
+        } else {
+            String nameString2 = "";
+            if (chat != null) {
+                nameString2 = AndroidUtilities.removeRTL(AndroidUtilities.removeDiacritics(chat.title));
+            } else if (user != null) {
+                nameString2 = AndroidUtilities.removeRTL(AndroidUtilities.removeDiacritics(UserObject.getUserName(user)));
             }
-        } else if (nameString == null && user != null) {
-            nameString = AndroidUtilities.removeRTL(AndroidUtilities.removeDiacritics(UserObject.getUserName(user)));
+            nameString = nameString2.replace('\n', ' ');
         }
-        nameString = AndroidUtilities.replaceNewLines(nameString);
-        if (TextUtils.isEmpty(nameString)) {
-            if (user != null && !TextUtils.isEmpty(user.phone)) {
+        if (nameString.length() == 0) {
+            if (user != null && user.phone != null && user.phone.length() != 0) {
                 nameString = PhoneFormat.getInstance().format("+" + user.phone);
             } else {
                 nameString = getString(R.string.HiddenName);
@@ -533,7 +498,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
                 namePaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
                 namePaint.setTypeface(AndroidUtilities.bold());
             }
-            namePaint.setTextSize(dp(callCellStyle ? 15 : 16));
+            namePaint.setTextSize(dp(16));
             if (encryptedChat != null) {
                 namePaint.setColor(Theme.getColor(Theme.key_chats_secretName, resourcesProvider));
             } else {
@@ -615,7 +580,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         }
         if (!statusDrawable.isEmpty()) {
             if (LocaleController.isRTL) {
-                // nameLeft += statusDrawable.getIntrinsicWidth();
+                nameLeft += statusDrawable.getIntrinsicWidth();
             } else {
                 nameWidth -= statusDrawable.getIntrinsicWidth();
             }
@@ -682,8 +647,6 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
                 } else {
                     if (chat.has_geo) {
                         statusString = getString(R.string.MegaLocation);
-                    } else if (ChatObject.isMonoForum(chat)) {
-                        statusString = getString(R.string.MonoforumMessages);
                     } else if (!ChatObject.isPublic(chat)) {
                         statusString = getString(R.string.MegaPrivate).toLowerCase();
                     } else {
@@ -697,7 +660,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             if (statusPaint == null) {
                 statusPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
             }
-            statusPaint.setTextSize(dp(callCellStyle ? 13f : 15));
+            statusPaint.setTextSize(dp(15));
             if (currentStatusPaint == Theme.dialogs_offlinePaint) {
                 statusPaint.setColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText3, resourcesProvider));
             } else if (currentStatusPaint == Theme.dialogs_onlinePaint) {
@@ -720,9 +683,9 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         if (LocaleController.isRTL) {
             avatarLeft = getMeasuredWidth() - dp(57) - getPaddingRight();
         } else {
-            avatarLeft = dp(callCellStyle ? 14 : rectangularAvatar ? 15 : 11) + getPaddingLeft();
+            avatarLeft = dp(rectangularAvatar ? 15 : 11) + getPaddingLeft();
         }
-        avatarStoryParams.originalAvatarRect.set(avatarLeft, dp(callCellStyle ? 6 : 7), avatarLeft + dp(callCellStyle ? 44 : rectangularAvatar ? 42 : 46), dp(callCellStyle ? 6 : 7) + dp(callCellStyle ? 44 : 46));
+        avatarStoryParams.originalAvatarRect.set(avatarLeft, dp(7), avatarLeft + dp(rectangularAvatar ? 42 : 46), dp(7) + dp(46));
 
         double widthpx;
         float left;
@@ -769,25 +732,20 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
         nameLeft += getPaddingLeft();
         statusLeft += getPaddingLeft();
         nameLockLeft += getPaddingLeft();
-
-        if (callCellStyle) {
-            nameLeft += dp(1);
-            nameTop += dp(1);
-        }
     }
 
     public void updateStatus(boolean verified, TLRPC.User user, TLRPC.Chat chat, boolean animated) {
         statusDrawable.center = LocaleController.isRTL;
-        if (allowEmojiStatus && verified) {
+        if (verified) {
             statusDrawable.set(new CombinedDrawable(Theme.dialogs_verifiedDrawable, Theme.dialogs_verifiedCheckDrawable, 0, 0), animated);
             statusDrawable.setColor(null);
-        } else if (allowEmojiStatus && user != null && !savedMessages && DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0) {
+        } else if (user != null && !savedMessages && DialogObject.getEmojiStatusDocumentId(user.emoji_status) != 0) {
             statusDrawable.set(DialogObject.getEmojiStatusDocumentId(user.emoji_status), animated);
             statusDrawable.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
-        } else if (allowEmojiStatus && chat != null && !savedMessages && DialogObject.getEmojiStatusDocumentId(chat.emoji_status) != 0) {
+        } else if (chat != null && !savedMessages && DialogObject.getEmojiStatusDocumentId(chat.emoji_status) != 0) {
             statusDrawable.set(DialogObject.getEmojiStatusDocumentId(chat.emoji_status), animated);
             statusDrawable.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
-        } else if (allowEmojiStatus && user != null && !savedMessages && MessagesController.getInstance(currentAccount).isPremiumUser(user)) {
+        } else if (user != null && !savedMessages && MessagesController.getInstance(currentAccount).isPremiumUser(user)) {
             statusDrawable.set(PremiumGradient.getInstance().premiumStarDrawableMini, animated);
             statusDrawable.setColor(Theme.getColor(Theme.key_chats_verifiedBackground, resourcesProvider));
         } else {
@@ -841,12 +799,8 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
                     thumb = chat.photo.strippedBitmap;
                 }
             }
-            if (chat.monoforum) {
-                ForumUtilities.setMonoForumAvatar(currentAccount, chat, avatarDrawable, avatarImage);
-            } else {
-                avatarDrawable.setInfo(currentAccount, chat);
-                avatarImage.setImage(ImageLocation.getForUserOrChat(chat, ImageLocation.TYPE_SMALL), "50_50", ImageLocation.getForUserOrChat(chat, ImageLocation.TYPE_STRIPPED), "50_50", thumb, chat, 0);
-            }
+            avatarDrawable.setInfo(currentAccount, chat);
+            avatarImage.setImage(ImageLocation.getForUserOrChat(chat, ImageLocation.TYPE_SMALL), "50_50", ImageLocation.getForUserOrChat(chat, ImageLocation.TYPE_STRIPPED), "50_50", thumb, chat, 0);
         } else if (contact != null) {
             avatarDrawable.setInfo(0, contact.first_name, contact.last_name);
             avatarImage.setImage(null, null, avatarDrawable, null, null, 0);
@@ -855,7 +809,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             avatarImage.setImage(null, null, avatarDrawable, null, null, 0);
         }
 
-        avatarImage.setRoundRadius(chat != null && chat.monoforum ? 0 : rectangularAvatar ? dp(10) : chat != null && chat.forum ? dp(16) : dp(23));
+        avatarImage.setRoundRadius(rectangularAvatar ? dp(10) : chat != null && chat.forum ? dp(16) : dp(23));
         if (mask != 0) {
             boolean continueUpdate = false;
             if ((mask & MessagesController.UPDATE_MASK_AVATAR) != 0 && user != null || (mask & MessagesController.UPDATE_MASK_CHAT_AVATAR) != 0 && chat != null) {
@@ -879,8 +833,6 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
                 String newName;
                 if (user != null) {
                     newName = user.first_name + user.last_name;
-                } else if (chat.monoforum) {
-                    newName = ForumUtilities.getMonoForumTitle(currentAccount, chat);
                 } else {
                     newName = chat.title;
                 }
@@ -908,9 +860,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             }
             lastName = user.first_name + user.last_name;
         } else if (chat != null) {
-            lastName = chat.monoforum ?
-                ForumUtilities.getMonoForumTitle(currentAccount, chat) :
-                chat.title;
+            lastName = chat.title;
         }
 
         lastAvatar = photo;
@@ -1013,7 +963,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
 
         if (statusLayout != null) {
             canvas.save();
-            canvas.translate(statusLeft + sublabelOffsetX, dp(callCellStyle ? 35 : 33) + sublabelOffsetY);
+            canvas.translate(statusLeft + sublabelOffsetX, dp(33) + sublabelOffsetY);
             statusLayout.draw(canvas);
             canvas.restore();
         }
@@ -1042,19 +992,7 @@ public class ProfileSearchCell extends BaseCell implements NotificationCenter.No
             canvas.restore();
         }
 
-        if (dontDrawAvatar) {
-
-        } else if (chat != null && chat.monoforum) {
-            if (bubbleClip == null) {
-                bubbleClip = new PhotoBubbleClip();
-            }
-            bubbleClip.setBounds((int) avatarStoryParams.originalAvatarRect.centerX(), (int) avatarStoryParams.originalAvatarRect.centerY(), (int) (avatarStoryParams.originalAvatarRect.width() / 2));
-            canvas.save();
-            canvas.clipPath(bubbleClip);
-            avatarImage.setImageCoords(avatarStoryParams.originalAvatarRect);
-            avatarImage.draw(canvas);
-            canvas.restore();
-        } else if (user != null) {
+        if (user != null) {
             StoriesUtilities.drawAvatarWithStory(user.id, canvas, avatarImage, avatarStoryParams);
         } else if (chat != null) {
             StoriesUtilities.drawAvatarWithStory(-chat.id, canvas, avatarImage, avatarStoryParams);

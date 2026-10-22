@@ -4,7 +4,6 @@ import static org.telegram.messenger.AndroidUtilities.dp;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -118,7 +117,7 @@ public class StickerEmptyView extends FrameLayout implements NotificationCenter.
         subtitle.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         subtitle.setGravity(Gravity.CENTER);
 
-        button = new ButtonWithCounterView(context, resourcesProvider).setRound();
+        button = new ButtonWithCounterView(context, resourcesProvider);
         button.setVisibility(View.GONE);
 
         linearLayout.addView(stickerView, LayoutHelper.createLinear(117, 117, Gravity.CENTER_HORIZONTAL));
@@ -201,12 +200,6 @@ public class StickerEmptyView extends FrameLayout implements NotificationCenter.
 
     @Override
     public void setVisibility(int visibility) {
-        setVisibility(visibility, true);
-    }
-
-    public void setVisibility(int visibility, boolean animated) {
-        setVisibility(visibility == VISIBLE, animated, false);
-
         if (getVisibility() != visibility) {
             if (visibility == VISIBLE) {
                 if (progressShowing) {
@@ -468,48 +461,6 @@ public class StickerEmptyView extends FrameLayout implements NotificationCenter.
             }
         }
         return count;
-    }
-
-    private ValueAnimator visibilityAnimator;
-    private float visibilityFactor;
-    private boolean visibilityValue;
-
-    public float getVisibilityFactor() {
-        return visibilityFactor;
-    }
-
-    private void setVisibility(boolean visibility, boolean animated, boolean force) {
-        if (visibilityValue == visibility && !force) {
-            return;
-        }
-
-        visibilityValue = visibility;
-        setEnabled(visibility);
-
-        if (visibilityAnimator != null) {
-            visibilityAnimator.cancel();
-            visibilityAnimator = null;
-        }
-
-        if (!animated) {
-            visibilityFactor = visibility ? 1: 0;
-            onVisibilityChange(visibilityFactor);
-            return;
-        }
-
-        visibilityAnimator = ValueAnimator.ofFloat(visibilityFactor, visibility ? 1: 0);
-        visibilityAnimator.setDuration(480L);
-        visibilityAnimator.setInterpolator(CubicBezierInterpolator.EASE_OUT_QUINT);
-        visibilityAnimator.addUpdateListener(a -> {
-            visibilityFactor = (float) a.getAnimatedValue();
-            onVisibilityChange(visibilityFactor);
-
-        });
-        visibilityAnimator.start();
-    }
-
-    protected void onVisibilityChange(float factor) {
-        invalidate();
     }
 
 }

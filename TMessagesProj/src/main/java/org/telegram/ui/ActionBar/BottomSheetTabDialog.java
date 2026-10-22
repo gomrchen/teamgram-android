@@ -8,6 +8,8 @@ import android.graphics.RectF;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
+import android.view.KeyboardShortcutGroup;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -16,12 +18,15 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.R;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.LaunchActivity;
+
+import java.util.List;
 
 public class BottomSheetTabDialog extends Dialog {
 
@@ -116,9 +121,9 @@ public class BottomSheetTabDialog extends Dialog {
         final int color = sheet.getNavigationBarColor(Theme.getColor(Theme.key_windowBackgroundGray));
         navigationBarPaint.setColor(color);
         navigationBar.invalidate();
-        AndroidUtilities.setNavigationBarColor(this, color);
-        AndroidUtilities.setLightNavigationBar(this, AndroidUtilities.computePerceivedBrightness(color) >= .721f);
-        LaunchActivity.instance.checkSystemBarColors(true, true, true);
+        AndroidUtilities.setNavigationBarColor(getWindow(), color);
+        AndroidUtilities.setLightNavigationBar(getWindow(), AndroidUtilities.computePerceivedBrightness(color) >= .721f);
+        LaunchActivity.instance.checkSystemBarColors(true, true, true, false);
     }
 
     public static class WindowView extends FrameLayout implements BottomSheetTabsOverlay.SheetView {

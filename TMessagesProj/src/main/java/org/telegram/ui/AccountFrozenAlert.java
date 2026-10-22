@@ -50,7 +50,7 @@ public class AccountFrozenAlert {
         }
         try {
             final Matcher m = Pattern.compile("t\\.me/([a-zA-Z0-9]+)/?").matcher(MessagesController.getInstance(currentAccount).freezeAppealUrl);
-            return m.find() && username.equalsIgnoreCase(m.group(1));
+            return m.matches() && username.equalsIgnoreCase(m.group(1));
         } catch (Exception e) {
             FileLog.e(e);
             return false;
@@ -101,15 +101,15 @@ public class AccountFrozenAlert {
         textView.setGravity(Gravity.CENTER);
         linearLayout.addView(textView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 0, 0, 23));
 
-        ExplainStarsSheet.FeatureCell featureCell = new ExplainStarsSheet.FeatureCell(context, ExplainStarsSheet.FeatureCell.STYLE_SHEET, resourcesProvider);
+        ExplainStarsSheet.FeatureCell featureCell = new ExplainStarsSheet.FeatureCell(context, ExplainStarsSheet.FeatureCell.STYLE_SHEET);
         featureCell.set(R.drawable.msg_block2, getString(R.string.AccountFrozen1Title), getString(R.string.AccountFrozen1Text));
         linearLayout.addView(featureCell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 0, 0, 0));
 
-        featureCell = new ExplainStarsSheet.FeatureCell(context, ExplainStarsSheet.FeatureCell.STYLE_SHEET, resourcesProvider);
+        featureCell = new ExplainStarsSheet.FeatureCell(context, ExplainStarsSheet.FeatureCell.STYLE_SHEET);
         featureCell.set(R.drawable.menu_privacy, getString(R.string.AccountFrozen2Title), getString(R.string.AccountFrozen2Text));
         linearLayout.addView(featureCell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 0, 0, 0));
 
-        featureCell = new ExplainStarsSheet.FeatureCell(context, ExplainStarsSheet.FeatureCell.STYLE_SHEET, resourcesProvider);
+        featureCell = new ExplainStarsSheet.FeatureCell(context, ExplainStarsSheet.FeatureCell.STYLE_SHEET);
         featureCell.set(R.drawable.menu_feature_hourglass, getString(R.string.AccountFrozen3Title), replaceSingleTag(formatString(R.string.AccountFrozen3Text, formatYearMonthDay(MessagesController.getInstance(currentAccount).freezeUntilDate, true)), openAppeal::run));
         linearLayout.addView(featureCell, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 0, 0, 0));
 

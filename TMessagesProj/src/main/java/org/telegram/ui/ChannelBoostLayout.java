@@ -56,7 +56,6 @@ import org.telegram.ui.Components.Premium.boosts.cells.statistics.GiveawayCell;
 import org.telegram.ui.Components.RLottieImageView;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.ScrollSlidingTextTabStrip;
-import org.telegram.ui.Components.blur3.capture.IBlur3Capture;
 import org.telegram.ui.Stars.StarsController;
 import org.telegram.ui.Stars.StarsIntroActivity;
 
@@ -121,12 +120,22 @@ public class ChannelBoostLayout extends FrameLayout {
                     LimitPreviewView limitPreviewView = new LimitPreviewView(getContext(), R.drawable.filled_limit_boost, 0, 0, resourcesProvider);
                     limitPreviewView.isStatistic = true;
                     view = limitPreviewView;
-                    limitPreviewView.setTag(RecyclerListView.TAG_NOT_SECTION);
-                    view.setPadding(0, dp(20), 0, dp(20));
+                    Drawable shadowDrawable = Theme.getThemedDrawable(getContext(), R.drawable.greydivider, Theme.getColor(Theme.key_windowBackgroundGrayShadow, resourcesProvider));
+                    Drawable background = new ColorDrawable(Theme.getColor(Theme.key_windowBackgroundGray));
+                    CombinedDrawable combinedDrawable = new CombinedDrawable(background, shadowDrawable, 0, 0);
+                    combinedDrawable.setFullsize(true);
+
+                    view.setPadding(0, dp(20), 0, AndroidUtilities.dp(20));
+                    view.setBackground(combinedDrawable);
                     limitPreviewView.setBoosts(boostsStatus, false);
                     break;
                 case DIVIDER_TEXT_VIEW_TYPE:
                     view = new TextInfoPrivacyCell(parent.getContext(), 20, resourcesProvider);
+                    shadowDrawable = Theme.getThemedDrawable(getContext(), R.drawable.greydivider, Theme.getColor(Theme.key_windowBackgroundGrayShadow, resourcesProvider));
+                    background = new ColorDrawable(Theme.getColor(Theme.key_windowBackgroundGray));
+                    combinedDrawable = new CombinedDrawable(background, shadowDrawable, 0, 0);
+                    combinedDrawable.setFullsize(true);
+                    view.setBackground(combinedDrawable);
                     break;
                 case DIVIDER_VIEW_TYPE:
                     view = new ShadowSectionCell(parent.getContext(), 12, Theme.getColor(Theme.key_windowBackgroundGray));
@@ -318,8 +327,7 @@ public class ChannelBoostLayout extends FrameLayout {
         }
     };
 
-    public final RecyclerListView listView;
-    public IBlur3Capture iBlur3Capture;
+    RecyclerListView listView;
     boolean usersLoading;
     private LinearLayout progressLayout;
     private TLRPC.Chat currentChat;
@@ -332,14 +340,11 @@ public class ChannelBoostLayout extends FrameLayout {
         this.dialogId = dialogId;
         this.currentChat = MessagesController.getInstance(currentAccount).getChat(-dialogId);
         listView = new RecyclerListView(context);
-        listView.setSections(true);
-        listView.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundGray, resourcesProvider));
         listView.setLayoutManager(new LinearLayoutManager(context));
         DefaultItemAnimator defaultItemAnimator = new DefaultItemAnimator();
         defaultItemAnimator.setSupportsChangeAnimations(false);
         defaultItemAnimator.setDelayAnimations(false);
         listView.setItemAnimator(defaultItemAnimator);
-        listView.setClipToPadding(false);
         listView.setOnItemClickListener((view, position) -> {
             if (view instanceof GiftedUserCell) {
                 GiftedUserCell cell = (GiftedUserCell) view;
@@ -353,7 +358,6 @@ public class ChannelBoostLayout extends FrameLayout {
                     giftCode.from_id = MessagesController.getInstance(UserConfig.selectedAccount).getPeer(-currentChat.id);
                     giftCode.date = boost.date;
                     giftCode.via_giveaway = boost.giveaway;
-                    giftCode.days = (boost.expires - boost.date) / 86400;
                     giftCode.months = (boost.expires - boost.date) / 30 / 86400;
                     if (boost.unclaimed) {
                         giftCode.to_id = NO_USER_ID;

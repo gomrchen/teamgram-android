@@ -48,7 +48,6 @@ public:
     int32_t getCurrentTime();
     int32_t getCurrentPingTime();
     uint32_t getCurrentDatacenterId();
-    int64_t getCurrentAuthKeyId();
     bool isTestBackend();
     int32_t getTimeDifference();
     int32_t sendRequest(TLObject *object, onCompleteFunc onComplete, onQuickAckFunc onQuickAck, onRequestClearFunc onClear, uint32_t flags, uint32_t datacenterId, ConnectionType connectionType, bool immediate);
@@ -86,7 +85,6 @@ public:
     void failNotRunningRequest(int32_t token);
     void receivedIntegrityCheckClassic(int32_t requestToken, std::string nonce, std::string token);
     void receivedCaptchaResult(int32_t requestTokensCount, int32_t* requestTokens, std::string token);
-    void moveToDatacenter(uint32_t datacenterId);
 
 private:
     static void *ThreadProc(void *data);
@@ -105,6 +103,7 @@ private:
     void clearRequestsForDatacenter(Datacenter *datacenter, HandshakeType type);
     void registerForInternalPushUpdates();
     void processRequestQueue(uint32_t connectionType, uint32_t datacenterId);
+    void moveToDatacenter(uint32_t datacenterId);
     void authorizeOnMovingDatacenter();
     void authorizedOnMovingDatacenter();
     Datacenter *getDatacenterWithId(uint32_t datacenterId);

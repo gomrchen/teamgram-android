@@ -1,14 +1,15 @@
 package org.telegram.ui.Business;
 
-import static org.telegram.messenger.AndroidUtilities.dp;
-
-import android.annotation.SuppressLint;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
-import android.text.Editable;
+import android.os.Build;
 import android.text.TextUtils;
-import android.text.TextWatcher;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -27,49 +28,43 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.Utilities;
-import org.telegram.messenger.utils.TextWatcherImpl;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.SimpleTextView;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.ActionBar.ThemeDescription;
 import org.telegram.ui.Components.AlertsCreator;
+import org.telegram.ui.Components.ChatActivityInterface;
 import org.telegram.ui.Components.ChatAttachAlert;
-import org.telegram.ui.Components.CubicBezierInterpolator;
-import org.telegram.ui.Components.FragmentSearchField;
+import org.telegram.ui.Components.EditTextBoldCursor;
 import org.telegram.ui.Components.Premium.PremiumFeatureBottomSheet;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.FillLastLinearLayoutManager;
 import org.telegram.ui.Components.EmptyTextProgressView;
+import org.telegram.ui.Components.SearchField;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.CheckBox2;
 import org.telegram.ui.Components.AvatarDrawable;
-import org.telegram.ui.Components.blur3.BlurredBackgroundDrawableViewFactory;
-import org.telegram.ui.Components.blur3.drawable.color.impl.BlurredBackgroundProviderImpl;
 import org.telegram.ui.PremiumPreviewFragment;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 
-import me.vkryl.android.animator.BoolAnimator;
-import me.vkryl.android.animator.FactorAnimator;
+public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAlertLayout implements NotificationCenter.NotificationCenterDelegate {
 
-@SuppressLint("ViewConstructor")
-public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAlertLayout implements NotificationCenter.NotificationCenterDelegate, FactorAnimator.Target {
-    private static final int ANIMATOR_ID_FADE_VISIBLE = 0;
+    private FrameLayout frameLayout;
+    private RecyclerListView listView;
+    private FillLastLinearLayoutManager layoutManager;
+    private HashSet<Integer> selectedReplies = new HashSet<>();
+    private ShareAdapter listAdapter;
+    private ShareSearchAdapter searchAdapter;
+    private EmptyTextProgressView emptyView;
+    private View shadow;
+    private AnimatorSet shadowAnimation;
+    private SearchField searchField;
 
-    private final BoolAnimator animatorFadeVisible = new BoolAnimator(ANIMATOR_ID_FADE_VISIBLE, this, CubicBezierInterpolator.EASE_OUT_QUINT, 380);
-
-    private final FrameLayout frameLayout;
-    private final RecyclerListView listView;
-    private final FillLastLinearLayoutManager layoutManager;
-    private final HashSet<Integer> selectedReplies = new HashSet<>();
-    private final ShareAdapter listAdapter;
-    private final ShareSearchAdapter searchAdapter;
-    private final EmptyTextProgressView emptyView;
-    private final FragmentSearchField searchField;
-    private final View fadeView;
+    private boolean ignoreLayout;
 
     public static class UserCell extends FrameLayout {
 
@@ -300,17 +295,13 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
 
         searchAdapter = new ShareSearchAdapter(context);
 
-        fadeView = new ChatAttachAlert.SearchFadeView(context, resourcesProvider);
-        fadeView.setVisibility(INVISIBLE);
-
         frameLayout = new FrameLayout(context);
-        searchField = new ChatAttachAlert.AttachSearchField(context, parentAlert, resourcesProvider);
-        searchField.setPadding(dp(4), dp(4), dp(4), dp(4));
-        searchField.editText.addTextChangedListener(new TextWatcherImpl() {
+        frameLayout.setBackgroundColor(getThemedColor(Theme.key_dialogBackground));
+
+        searchField = new SearchField(context, false, resourcesProvider) {
             @Override
-            public void afterTextChanged(Editable s) {
-                String text  = s.toString();
-                if (!text.isEmpty()) {
+            public void onTextChange(String text) {
+                if (text.length() != 0) {
                     if (emptyView != null) {
                         emptyView.setText(LocaleController.getString(R.string.NoResult));
                     }
@@ -329,12 +320,28 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
                     searchAdapter.search(text);
                 }
             }
-        });
-        searchField.editText.setHint(LocaleController.getString(R.string.BusinessRepliesSearch));
-        frameLayout.addView(fadeView, LayoutHelper.createFrameMatchParent());
-        MarginLayoutParams lp = LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 48, Gravity.TOP | Gravity.LEFT, 7, 8, 7, 4);
-        lp.topMargin += AndroidUtilities.statusBarHeight;
-        frameLayout.addView(searchField, lp);
+
+            @Override
+            public boolean onInterceptTouchEvent(MotionEvent ev) {
+                parentAlert.makeFocusable(getSearchEditText(), true);
+                return super.onInterceptTouchEvent(ev);
+            }
+
+            @Override
+            public void processTouchEvent(MotionEvent event) {
+                MotionEvent e = MotionEvent.obtain(event);
+                e.setLocation(e.getRawX(), e.getRawY() - parentAlert.getSheetContainer().getTranslationY() - AndroidUtilities.dp(58));
+                listView.dispatchTouchEvent(e);
+                e.recycle();
+            }
+
+            @Override
+            protected void onFieldTouchUp(EditTextBoldCursor editText) {
+                parentAlert.makeFocusable(editText, true);
+            }
+        };
+        searchField.setHint(LocaleController.getString(R.string.BusinessRepliesSearch));
+        frameLayout.addView(searchField, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP | Gravity.LEFT));
 
         emptyView = new EmptyTextProgressView(context, null, resourcesProvider);
         emptyView.showTextView();
@@ -343,7 +350,7 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
         listView = new RecyclerListView(context, resourcesProvider) {
             @Override
             protected boolean allowSelectChildAtPosition(float x, float y) {
-                return y >= parentAlert.scrollOffsetY[0] + AndroidUtilities.dp(30) + (!parentAlert.inBubbleMode ? AndroidUtilities.statusBarHeight : 0);
+                return y >= parentAlert.scrollOffsetY[0] + AndroidUtilities.dp(30) + (Build.VERSION.SDK_INT >= 21 && !parentAlert.inBubbleMode ? AndroidUtilities.statusBarHeight : 0);
             }
 
             @Override
@@ -354,11 +361,6 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
 //                }
             }
         };
-        listView.setSections();
-        iBlur3Capture = listView;
-        iBlur3CaptureView = listView;
-        occupyStatusBar = true;
-        occupyNavigationBar = true;
         NotificationCenter.getInstance(UserConfig.selectedAccount).listenGlobal(listView, NotificationCenter.emojiLoaded, args -> {
             AndroidUtilities.forEachViews(listView, view -> {
                 if (view instanceof QuickRepliesActivity.QuickReplyView) {
@@ -374,7 +376,7 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
                     @Override
                     public int calculateDyToMakeVisible(View view, int snapPreference) {
                         int dy = super.calculateDyToMakeVisible(view, snapPreference);
-                        dy -= (listView.getPaddingTop() - AndroidUtilities.statusBarHeight - AndroidUtilities.dp(8));
+                        dy -= (listView.getPaddingTop() - AndroidUtilities.dp(8));
                         return dy;
                     }
 
@@ -391,6 +393,7 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
         listView.setHorizontalScrollBarEnabled(false);
         listView.setVerticalScrollBarEnabled(false);
         listView.setClipToPadding(false);
+        listView.setPadding(0, 0, 0, AndroidUtilities.dp(48));
         addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP | Gravity.LEFT, 0, 0, 0, 0));
         listView.setAdapter(listAdapter = new ShareAdapter(context));
         listView.setGlowColor(getThemedColor(Theme.key_dialogScrollGlow));
@@ -427,17 +430,17 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
             }
         });
 
-        lp = LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 60, Gravity.LEFT | Gravity.TOP);
-        lp.height += AndroidUtilities.statusBarHeight;
-        addView(frameLayout, lp);
+        FrameLayout.LayoutParams frameLayoutParams = new FrameLayout.LayoutParams(LayoutHelper.MATCH_PARENT, AndroidUtilities.getShadowHeight(), Gravity.TOP | Gravity.LEFT);
+        frameLayoutParams.topMargin = AndroidUtilities.dp(58);
+        shadow = new View(context);
+        shadow.setBackgroundColor(getThemedColor(Theme.key_dialogShadowLine));
+        shadow.setAlpha(0.0f);
+        shadow.setTag(1);
+        addView(shadow, frameLayoutParams);
+
+        addView(frameLayout, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 58, Gravity.LEFT | Gravity.TOP));
 
         updateEmptyView();
-    }
-
-    public void setupBlurredSearchField(BlurredBackgroundDrawableViewFactory factory) {
-        if (searchField != null) {
-            searchField.setupBlurredBackground(factory.create(searchField, BlurredBackgroundProviderImpl.attachMenuSearch(resourcesProvider)));
-        }
     }
 
     @Override
@@ -450,7 +453,7 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
     }
 
     @Override
-    public boolean sendSelectedItems(boolean notify, int scheduleDate, int scheduleRepeatPeriod, long effectId, boolean invertMedia) {
+    public boolean sendSelectedItems(boolean notify, int scheduleDate, long effectId, boolean invertMedia) {
         return false;
     }
 
@@ -466,13 +469,13 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
         }
         View child = listView.getChildAt(0);
         RecyclerListView.Holder holder = (RecyclerListView.Holder) listView.findContainingViewHolder(child);
-        int top = child.getTop() - AndroidUtilities.statusBarHeight - AndroidUtilities.dp(8);
+        int top = child.getTop() - AndroidUtilities.dp(8);
         int newOffset = top > 0 && holder != null && holder.getAdapterPosition() == 0 ? top : 0;
         if (top >= 0 && holder != null && holder.getAdapterPosition() == 0) {
             newOffset = top;
-            animatorFadeVisible.setValue(false, true);
+            runShadowAnimation(false);
         } else {
-            animatorFadeVisible.setValue(true, true);
+            runShadowAnimation(true);
         }
         frameLayout.setTranslationY(newOffset);
         return newOffset + AndroidUtilities.dp(12);
@@ -508,9 +511,53 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
             }
             parentAlert.setAllowNestedScroll(true);
         }
+        if (listView.getPaddingTop() != padding) {
+            ignoreLayout = true;
+            listView.setPadding(0, padding, 0, AndroidUtilities.dp(48));
+            ignoreLayout = false;
+        }
+    }
 
-        padding += AndroidUtilities.statusBarHeight;
-        listView.setPaddingWithoutRequestLayout(0, padding, 0, listPaddingBottom);
+    @Override
+    public void requestLayout() {
+        if (ignoreLayout) {
+            return;
+        }
+        super.requestLayout();
+    }
+
+    private void runShadowAnimation(final boolean show) {
+        if (show && shadow.getTag() != null || !show && shadow.getTag() == null) {
+            shadow.setTag(show ? null : 1);
+            if (show) {
+                shadow.setVisibility(View.VISIBLE);
+            }
+            if (shadowAnimation != null) {
+                shadowAnimation.cancel();
+            }
+            shadowAnimation = new AnimatorSet();
+            shadowAnimation.playTogether(ObjectAnimator.ofFloat(shadow, View.ALPHA, show ? 1.0f : 0.0f));
+            shadowAnimation.setDuration(150);
+            shadowAnimation.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    if (shadowAnimation != null && shadowAnimation.equals(animation)) {
+                        if (!show) {
+                            shadow.setVisibility(View.INVISIBLE);
+                        }
+                        shadowAnimation = null;
+                    }
+                }
+
+                @Override
+                public void onAnimationCancel(Animator animation) {
+                    if (shadowAnimation != null && shadowAnimation.equals(animation)) {
+                        shadowAnimation = null;
+                    }
+                }
+            });
+            shadowAnimation.start();
+        }
     }
 
     private int getCurrentTop() {
@@ -559,11 +606,6 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
         boolean visible = listView.getAdapter().getItemCount() == 2;
         emptyView.setVisibility(visible ? VISIBLE : GONE);
         updateEmptyViewPosition();
-    }
-
-    @Override
-    public void onFactorChanged(int id, float factor, float fraction, FactorAnimator callee) {
-
     }
 
     public class ShareAdapter extends RecyclerListView.SectionsAdapter {
@@ -625,13 +667,11 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
                 case 1: {
                     view = new View(mContext);
                     view.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(56)));
-                    view.setTag(RecyclerListView.TAG_NOT_SECTION);
                     break;
                 }
                 case 2:
                 default: {
                     view = new View(mContext);
-                    view.setTag(RecyclerListView.TAG_NOT_SECTION);
                     break;
                 }
             }
@@ -742,12 +782,10 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
                 case 1:
                     view = new View(mContext);
                     view.setLayoutParams(new RecyclerView.LayoutParams(RecyclerView.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(56)));
-                    view.setTag(RecyclerListView.TAG_NOT_SECTION);
                     break;
                 case 2:
                 default:
                     view = new View(mContext);
-                    view.setTag(RecyclerListView.TAG_NOT_SECTION);
                     break;
             }
             return new RecyclerListView.Holder(view);
@@ -804,6 +842,17 @@ public class ChatAttachAlertQuickRepliesLayout extends ChatAttachAlert.AttachAle
         };
 
         ArrayList<ThemeDescription> themeDescriptions = new ArrayList<>();
+
+        themeDescriptions.add(new ThemeDescription(frameLayout, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_dialogBackground));
+
+        themeDescriptions.add(new ThemeDescription(shadow, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_dialogShadowLine));
+
+        themeDescriptions.add(new ThemeDescription(searchField.getSearchBackground(), ThemeDescription.FLAG_BACKGROUNDFILTER, null, null, null, null, Theme.key_dialogSearchBackground));
+        themeDescriptions.add(new ThemeDescription(searchField, ThemeDescription.FLAG_IMAGECOLOR, new Class[]{SearchField.class}, new String[]{"searchIconImageView"}, null, null, null, Theme.key_dialogSearchIcon));
+        themeDescriptions.add(new ThemeDescription(searchField, ThemeDescription.FLAG_IMAGECOLOR, new Class[]{SearchField.class}, new String[]{"clearSearchImageView"}, null, null, null, Theme.key_dialogSearchIcon));
+        themeDescriptions.add(new ThemeDescription(searchField.getSearchEditText(), ThemeDescription.FLAG_TEXTCOLOR, null, null, null, null, Theme.key_dialogSearchText));
+        themeDescriptions.add(new ThemeDescription(searchField.getSearchEditText(), ThemeDescription.FLAG_HINTTEXTCOLOR, null, null, null, null, Theme.key_dialogSearchHint));
+        themeDescriptions.add(new ThemeDescription(searchField.getSearchEditText(), ThemeDescription.FLAG_CURSORCOLOR, null, null, null, null, Theme.key_featuredStickers_addedIcon));
 
         themeDescriptions.add(new ThemeDescription(emptyView, ThemeDescription.FLAG_TEXTCOLOR, null, null, null, null, Theme.key_emptyListPlaceholder));
         themeDescriptions.add(new ThemeDescription(emptyView, ThemeDescription.FLAG_PROGRESSBAR, null, null, null, null, Theme.key_progressCircle));

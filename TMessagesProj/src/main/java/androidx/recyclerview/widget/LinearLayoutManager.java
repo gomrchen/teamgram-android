@@ -446,15 +446,10 @@ public class LinearLayoutManager extends RecyclerView.LayoutManager implements
     @Deprecated
     protected int getExtraLayoutSpace(RecyclerView.State state) {
         if (state.hasTargetScrollPosition()) {
-            return addExtraLayoutSpace + mOrientationHelper.getTotalSpace();
+            return mOrientationHelper.getTotalSpace();
         } else {
-            return addExtraLayoutSpace;
+            return 0;
         }
-    }
-
-    private int addExtraLayoutSpace;
-    public void setExtraLayoutSpace(int padding) {
-        this.addExtraLayoutSpace = padding;
     }
 
     /**

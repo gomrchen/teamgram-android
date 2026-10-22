@@ -15,6 +15,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
+import android.graphics.drawable.ShapeDrawable;
 import android.os.Bundle;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
@@ -36,6 +37,7 @@ import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.Emoji;
@@ -65,21 +67,24 @@ import org.telegram.ui.Components.FlickerLoadingView;
 import org.telegram.ui.Components.ItemOptions;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.LinkSpanDrawable;
+import org.telegram.ui.Components.Paint.ShapeDetector;
 import org.telegram.ui.Components.Premium.GLIcon.GLIconRenderer;
 import org.telegram.ui.Components.Premium.GLIcon.GLIconTextureView;
 import org.telegram.ui.Components.Premium.GLIcon.Icon3D;
+import org.telegram.ui.Components.Premium.PremiumGradient;
 import org.telegram.ui.Components.Premium.StarParticlesView;
 import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.ScaleStateListAnimator;
+import org.telegram.ui.Components.TableView;
 import org.telegram.ui.Components.TypefaceSpan;
 import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
-import org.telegram.ui.Components.UniversalRecyclerView;
 import org.telegram.ui.FilterCreateActivity;
 import org.telegram.ui.GradientHeaderActivity;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.ProfileActivity;
 import org.telegram.ui.Stars.BotStarsController;
+import org.telegram.ui.Stars.ProfileGiftsView;
 import org.telegram.ui.Stars.StarsIntroActivity;
 import org.telegram.ui.Stories.recorder.ButtonWithCounterView;
 
@@ -575,12 +580,12 @@ public class ChannelAffiliateProgramsFragment extends GradientHeaderActivity imp
             static { setup(new Factory()); }
 
             @Override
-            public BotCell createView(Context context, RecyclerListView listView, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
+            public BotCell createView(Context context, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
                 return new BotCell(context, currentAccount, resourcesProvider);
             }
 
             @Override
-            public void bindView(View view, UItem item, boolean divider, UniversalAdapter adapter, UniversalRecyclerView listView) {
+            public void bindView(View view, UItem item, boolean divider) {
                 if (item.object instanceof TL_payments.connectedBotStarRef) {
                     ((BotCell) view).set((TL_payments.connectedBotStarRef) item.object, item.red, divider);
                 } else if (item.object instanceof TL_payments.starRefProgram) {
@@ -613,7 +618,7 @@ public class ChannelAffiliateProgramsFragment extends GradientHeaderActivity imp
             subtextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2, resourcesProvider));
             subtextView.setLinkTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueHeader, resourcesProvider));
             subtextView.setPadding(dp(4), 0, dp(4), 0);
-            addView(subtextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.TOP, 14 - 4, 14, 14 - 4, 0));
+            addView(subtextView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, (LocaleController.isRTL ? Gravity.LEFT : Gravity.RIGHT) | Gravity.TOP, 14 - 4, 20, 14 - 4, 0));
         }
 
         public void set(CharSequence text, CharSequence subtext) {
@@ -625,12 +630,12 @@ public class ChannelAffiliateProgramsFragment extends GradientHeaderActivity imp
             static { setup(new Factory()); }
 
             @Override
-            public HeaderSortCell createView(Context context, RecyclerListView listView, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
+            public HeaderSortCell createView(Context context, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
                 return new HeaderSortCell(context, resourcesProvider);
             }
 
             @Override
-            public void bindView(View view, UItem item, boolean divider, UniversalAdapter adapter, UniversalRecyclerView listView) {
+            public void bindView(View view, UItem item, boolean divider) {
                 ((HeaderSortCell) view).set(item.text, item.subtext);
             }
 

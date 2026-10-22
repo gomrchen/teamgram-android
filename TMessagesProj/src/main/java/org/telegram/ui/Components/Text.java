@@ -27,7 +27,7 @@ import org.telegram.ui.ActionBar.Theme;
 
 public class Text {
 
-    public final TextPaint paint;
+    private final TextPaint paint;
     private StaticLayout layout;
     private float width, left;
     private float maxWidth = 9999;
@@ -81,10 +81,6 @@ public class Text {
         return this;
     }
 
-    public void detach() {
-        AnimatedEmojiSpan.release(parentView, animatedEmojis);
-    }
-
     public Text setEmojiCacheType(int cacheType) {
         if (animatedEmojisCacheType != cacheType) {
             animatedEmojisCacheType = cacheType;
@@ -116,14 +112,6 @@ public class Text {
         if (parentView != null && parentView.isAttachedToWindow()) {
             animatedEmojis = AnimatedEmojiSpan.update(animatedEmojisCacheType, parentView, animatedEmojis, layout);
         }
-    }
-
-    public float calculateRealWidth() {
-        float width = 0;
-        for (int i = 0; i < layout.getLineCount(); ++i) {
-            width = Math.max(width, layout.getLineWidth(i));
-        }
-        return width;
     }
 
     public Text multiline(int maxLines) {
@@ -226,10 +214,6 @@ public class Text {
     }
 
     public void draw(Canvas canvas, float x, float cy) {
-        draw(canvas, x, cy, 1f);
-    }
-
-    public void draw(Canvas canvas, float x, float cy, float alpha) {
         if (layout == null) {
             return;
         }
@@ -237,11 +221,7 @@ public class Text {
             canvas.save();
         }
         canvas.translate(x, cy - (maxLines > 1 ? 0 : layout.getHeight() / 2f));
-
-        final int savedAlpha = paint.getAlpha();
-        paint.setAlpha((int) (savedAlpha * alpha));
         draw(canvas);
-        paint.setAlpha(savedAlpha);
         if (!doNotSave) {
             canvas.restore();
         }

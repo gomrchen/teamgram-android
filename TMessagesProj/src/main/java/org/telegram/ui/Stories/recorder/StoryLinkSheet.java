@@ -49,7 +49,6 @@ import org.telegram.ui.Components.RecyclerListView;
 import org.telegram.ui.Components.ScaleStateListAnimator;
 import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
-import org.telegram.ui.Components.UniversalRecyclerView;
 
 import java.util.ArrayList;
 import java.util.regex.Pattern;
@@ -354,7 +353,6 @@ public class StoryLinkSheet extends BottomSheetWithRecyclerListView implements N
             if (res instanceof TL_account.webPagePreview) {
                 final TL_account.webPagePreview preview = (TL_account.webPagePreview) res;
                 MessagesController.getInstance(currentAccount).putUsers(preview.users, false);
-                MessagesController.getInstance(currentAccount).putChats(preview.chats, false);
                 if (preview.media instanceof TLRPC.TL_messageMediaWebPage) {
                     media = (TLRPC.TL_messageMediaWebPage) preview.media;
                 }
@@ -535,12 +533,12 @@ public class StoryLinkSheet extends BottomSheetWithRecyclerListView implements N
         public static class Factory extends UItem.UItemFactory<WebpagePreviewView> {
             static { setup(new Factory()); }
             @Override
-            public WebpagePreviewView createView(Context context, RecyclerListView listView, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
+            public WebpagePreviewView createView(Context context, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
                 return new WebpagePreviewView(context);
             }
 
             @Override
-            public void bindView(View view, UItem item, boolean divider, UniversalAdapter adapter, UniversalRecyclerView listView) {
+            public void bindView(View view, UItem item, boolean divider) {
                 ((WebpagePreviewView) view).set(
                     item.object instanceof TLRPC.WebPage ? (TLRPC.WebPage) item.object : null,
                     item.clickCallback,

@@ -1,7 +1,5 @@
 package org.telegram.ui;
 
-import static org.telegram.messenger.AndroidUtilities.dp;
-
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
@@ -36,7 +34,6 @@ import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.Utilities;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
-import org.telegram.tgnet.tl.TL_forum;
 import org.telegram.tgnet.tl.TL_stars;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.ActionBarPopupWindow;
@@ -65,7 +62,7 @@ public class TopicCreateFragment extends BaseFragment {
 
     private final static int CREATE_ID = 1;
     private final static int EDIT_ID = 2;
-    long dialogId;
+    long chatId;
     long selectedEmojiDocumentId;
     long topicId;
 
@@ -80,12 +77,6 @@ public class TopicCreateFragment extends BaseFragment {
     ReplaceableIconDrawable replaceableIconDrawable;
     TLRPC.TL_forumTopic topicForEdit;
     ForumBubbleDrawable forumBubbleDrawable;
-
-    private ChatActivity openInChatActivity;
-    public TopicCreateFragment setOpenInChatActivity(ChatActivity chatActivity) {
-        openInChatActivity = chatActivity;
-        return this;
-    }
 
     int iconColor;
 
@@ -102,10 +93,10 @@ public class TopicCreateFragment extends BaseFragment {
 
     @Override
     public boolean onFragmentCreate() {
-        dialogId = -arguments.getLong("chat_id");
+        chatId = arguments.getLong("chat_id");
         topicId = arguments.getLong("topic_id", 0);
         if (topicId != 0) {
-            topicForEdit = getMessagesController().getTopicsController().findTopic(-dialogId, topicId);
+            topicForEdit = getMessagesController().getTopicsController().findTopic(chatId, topicId);
             if (topicForEdit == null) {
                 return false;
             }
@@ -150,9 +141,9 @@ public class TopicCreateFragment extends BaseFragment {
                     progressDialog.showDelayed(500);
                     created = true;
 
-                    TL_forum.TL_messages_createForumTopic reqSend = new TL_forum.TL_messages_createForumTopic();
+                    TLRPC.TL_channels_createForumTopic reqSend = new TLRPC.TL_channels_createForumTopic();
 
-                    reqSend.peer = getMessagesController().getInputPeer(dialogId);
+                    reqSend.channel = getMessagesController().getInputChannel(chatId);
                     reqSend.title = topicName;
                     if (selectedEmojiDocumentId != 0) {
                         reqSend.icon_emoji_id = selectedEmojiDocumentId;
@@ -169,18 +160,24 @@ public class TopicCreateFragment extends BaseFragment {
                             for (int i = 0; i < updates.updates.size(); i++) {
                                 if (updates.updates.get(i) instanceof TLRPC.TL_updateMessageID) {
                                     TLRPC.TL_updateMessageID updateMessageID = (TLRPC.TL_updateMessageID) updates.updates.get(i);
+                                    Bundle args = new Bundle();
+                                    args.putLong("chat_id", chatId);
+                                    args.putInt("message_id", 1);
+                                    args.putInt("unread_count", 0);
+                                    args.putBoolean("historyPreloaded", false);
+                                    ChatActivity chatActivity = new ChatActivity(args);
                                     TLRPC.TL_messageActionTopicCreate actionMessage = new TLRPC.TL_messageActionTopicCreate();
                                     actionMessage.title = topicName;
                                     TLRPC.TL_messageService message = new TLRPC.TL_messageService();
                                     message.action = actionMessage;
-                                    message.peer_id = getMessagesController().getPeer(dialogId);
-                                    message.dialog_id = dialogId;
+                                    message.peer_id = getMessagesController().getPeer(-chatId);
+                                    message.dialog_id = -chatId;
                                     message.id = updateMessageID.id;
                                     message.date = (int) (System.currentTimeMillis() / 1000);
 
                                     ArrayList<MessageObject> messageObjects = new ArrayList<>();
                                     messageObjects.add(new MessageObject(currentAccount, message, false, false));
-                                    TLRPC.Chat chatLocal = getMessagesController().getChat(-dialogId);
+                                    TLRPC.Chat chatLocal = getMessagesController().getChat(chatId);
                                     TLRPC.TL_forumTopic forumTopic = new TLRPC.TL_forumTopic();
                                     forumTopic.id = updateMessageID.id;
                                     if (selectedEmojiDocumentId != 0) {
@@ -197,42 +194,10 @@ public class TopicCreateFragment extends BaseFragment {
                                     forumTopic.notify_settings = new TLRPC.TL_peerNotifySettings();
                                     forumTopic.icon_color = iconColor;
 
-                                    if (openInChatActivity != null) {
-                                        final ChatActivity chatActivity = openInChatActivity;
-
-                                        chatActivity.resetForReload();
-                                        chatActivity.saveDraft();
-                                        chatActivity.setThreadMessages(messageObjects, chatLocal, message.id, 1, 1, forumTopic);
-                                        chatActivity.justCreatedTopic = true;
-
-                                        chatActivity.firstLoadMessages();
-
-                                        chatActivity.updateTitle(true);
-                                        chatActivity.avatarContainer.updateSubtitle(true);
-                                        chatActivity.updateTopicTitleIcon();
-                                        chatActivity.topicsTabs.setCurrentTopic(chatActivity.getTopicId());
-                                        chatActivity.updateTopPanel(true);
-                                        chatActivity.updateBottomOverlay(true);
-                                        chatActivity.hideFieldPanel(true);
-                                        chatActivity.applyDraftMaybe(true, true);
-
-                                        chatActivity.reloadPinnedMessages();
-                                        getMessagesController().getTopicsController().onTopicCreated(dialogId, forumTopic, true);
-
-                                        finishFragment();
-                                    } else {
-                                        Bundle args = new Bundle();
-                                        args.putLong("chat_id", -dialogId);
-                                        args.putInt("message_id", 1);
-                                        args.putInt("unread_count", 0);
-                                        args.putBoolean("historyPreloaded", false);
-                                        ChatActivity chatActivity = new ChatActivity(args);
-
-                                        chatActivity.setThreadMessages(messageObjects, chatLocal, message.id, 1, 1, forumTopic);
-                                        chatActivity.justCreatedTopic = true;
-                                        getMessagesController().getTopicsController().onTopicCreated(dialogId, forumTopic, true);
-                                        presentFragment(chatActivity);
-                                    }
+                                    chatActivity.setThreadMessages(messageObjects, chatLocal, message.id, 1, 1, forumTopic);
+                                    chatActivity.justCreatedTopic = true;
+                                    getMessagesController().getTopicsController().onTopicCreated(-chatId, forumTopic, true);
+                                    presentFragment(chatActivity);
                                 }
                             }
                         }
@@ -250,8 +215,8 @@ public class TopicCreateFragment extends BaseFragment {
                         return;
                     }
                     if (!topicForEdit.title.equals(topicName) || topicForEdit.icon_emoji_id != selectedEmojiDocumentId) {
-                        TL_forum.TL_messages_editForumTopic editForumRequest = new TL_forum.TL_messages_editForumTopic();
-                        editForumRequest.peer = getMessagesController().getInputPeer(dialogId);
+                        TLRPC.TL_channels_editForumTopic editForumRequest = new TLRPC.TL_channels_editForumTopic();
+                        editForumRequest.channel = getMessagesController().getInputChannel(chatId);
                         editForumRequest.topic_id = topicForEdit.id;
                         if (!topicForEdit.title.equals(topicName)) {
                             editForumRequest.title = topicName;
@@ -270,8 +235,8 @@ public class TopicCreateFragment extends BaseFragment {
                         });
                     }
                     if (checkBoxCell != null && topicForEdit.id == 1 && !checkBoxCell.isChecked() != topicForEdit.hidden) {
-                        TL_forum.TL_messages_editForumTopic editForumRequest = new TL_forum.TL_messages_editForumTopic();
-                        editForumRequest.peer = getMessagesController().getInputPeer(dialogId);
+                        TLRPC.TL_channels_editForumTopic editForumRequest = new TLRPC.TL_channels_editForumTopic();
+                        editForumRequest.channel = getMessagesController().getInputChannel(chatId);
                         editForumRequest.topic_id = topicForEdit.id;
                         editForumRequest.hidden = !checkBoxCell.isChecked();
                         editForumRequest.flags |= 8;
@@ -290,7 +255,7 @@ public class TopicCreateFragment extends BaseFragment {
                     if (checkBoxCell != null) {
                         topicForEdit.hidden = !checkBoxCell.isChecked();
                     }
-                    getMessagesController().getTopicsController().onTopicEdited(dialogId, topicForEdit);
+                    getMessagesController().getTopicsController().onTopicEdited(-chatId, topicForEdit);
                     finishFragment();
                 }
             }
@@ -300,8 +265,6 @@ public class TopicCreateFragment extends BaseFragment {
         } else {
             actionBar.createMenu().addItem(EDIT_ID, R.drawable.ic_ab_done);
         }
-        actionBar.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
-        actionBar.setCastShadows(false);
 
         FrameLayout contentView = new SizeNotifierFrameLayout(context) {
             boolean keyboardWasShown;
@@ -310,7 +273,7 @@ public class TopicCreateFragment extends BaseFragment {
                 measureKeyboardHeight();
                 if (getKeyboardHeight() == 0 && !keyboardWasShown) {
                     SharedPreferences sharedPreferences = MessagesController.getGlobalEmojiSettings();
-                    keyboardHeight = sharedPreferences.getInt("kbd_height", dp(200));
+                    keyboardHeight = sharedPreferences.getInt("kbd_height", AndroidUtilities.dp(200));
                     setPadding(0, 0, 0, keyboardHeight);
                 } else {
                     keyboardWasShown = true;
@@ -320,7 +283,6 @@ public class TopicCreateFragment extends BaseFragment {
             }
         };
         fragmentView = contentView;
-        contentView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundGray));
 
         LinearLayout linearLayout = new LinearLayout(context);
         linearLayout.setOrientation(LinearLayout.VERTICAL);
@@ -339,7 +301,7 @@ public class TopicCreateFragment extends BaseFragment {
         editTextBoldCursor.setHintText(LocaleController.getString(R.string.EnterTopicName));
         editTextBoldCursor.setHintColor(getThemedColor(Theme.key_chat_messagePanelHint));
         editTextBoldCursor.setTextColor(getThemedColor(Theme.key_chat_messagePanelText));
-        editTextBoldCursor.setPadding(dp(0), editTextBoldCursor.getPaddingTop(), dp(0), editTextBoldCursor.getPaddingBottom());
+        editTextBoldCursor.setPadding(AndroidUtilities.dp(0), editTextBoldCursor.getPaddingTop(), AndroidUtilities.dp(0), editTextBoldCursor.getPaddingBottom());
         editTextBoldCursor.setBackgroundDrawable(null);
         editTextBoldCursor.setSingleLine(true);
         editTextBoldCursor.setInputType(editTextBoldCursor.getInputType() | EditorInfo.TYPE_TEXT_FLAG_CAP_SENTENCES);
@@ -439,15 +401,16 @@ public class TopicCreateFragment extends BaseFragment {
             iconContainer.addView(backupImageView[i], LayoutHelper.createFrame(28, 28, Gravity.CENTER));
         }
         editTextContainer.addView(iconContainer, LayoutHelper.createFrame(40, 40, Gravity.CENTER_VERTICAL, 10, 0, 0, 0));
-        LinearLayout topView = new LinearLayout(context);
-        topView.setOrientation(LinearLayout.VERTICAL);
-        topView.addView(headerCell);
-        topView.addView(editTextContainer);
-        topView.setBackground(Theme.createRoundRectDrawableShadowed(dp(16), getThemedColor(Theme.key_windowBackgroundWhite)));
-        linearLayout.addView(topView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 9, 1, 9, 0));
+        linearLayout.addView(headerCell);
+        linearLayout.addView(editTextContainer);
 
 
         FrameLayout emojiContainer = new FrameLayout(context);
+        Drawable shadowDrawable = Theme.getThemedDrawable(context, R.drawable.greydivider_top, Theme.getColor(Theme.key_windowBackgroundGrayShadow));
+        Drawable background = new ColorDrawable(Theme.getColor(Theme.key_windowBackgroundGray));
+        CombinedDrawable combinedDrawable = new CombinedDrawable(background, shadowDrawable, 0, 0);
+        combinedDrawable.setFullsize(true);
+        emojiContainer.setBackgroundDrawable(combinedDrawable);
         emojiContainer.setClipChildren(false);
 
         if (topicForEdit == null || topicForEdit.id != 1) {
@@ -509,25 +472,22 @@ public class TopicCreateFragment extends BaseFragment {
             iconContainer.addView(imageView, LayoutHelper.createFrame(22, 22, Gravity.CENTER));
 
             emojiContainer.addView(
-                new View(context),
+                new ActionBarPopupWindow.GapView(context, getResourceProvider()),
                 LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 8)
             );
-
-            FrameLayout checkBoxCellContainer = new FrameLayout(context);
-            checkBoxCellContainer.setBackground(Theme.createRoundRectDrawableShadowed(dp(16), getThemedColor(Theme.key_windowBackgroundWhite)));
 
             checkBoxCell = new TextCheckCell2(context);
             checkBoxCell.getCheckBox().setDrawIconType(0);
             checkBoxCell.setTextAndCheck(LocaleController.getString(R.string.EditTopicHide), !topicForEdit.hidden, false);
-            checkBoxCell.setBackground(Theme.createRadSelectorDrawable(getThemedColor(Theme.key_windowBackgroundWhite), getThemedColor(Theme.key_listSelector), 16, 16));
+            checkBoxCell.setBackground(Theme.createSelectorWithBackgroundDrawable(getThemedColor(Theme.key_windowBackgroundWhite), getThemedColor(Theme.key_listSelector)));
             checkBoxCell.setOnClickListener(e -> {
                 checkBoxCell.setChecked(!checkBoxCell.isChecked());
             });
-            checkBoxCellContainer.addView(checkBoxCell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 50, Gravity.FILL));
-            emojiContainer.addView(checkBoxCellContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 56, Gravity.TOP, 9, 8, 9, 0));
+            emojiContainer.addView(checkBoxCell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 50, Gravity.TOP, 0, 8, 0, 0));
 
             TextInfoPrivacyCell infoCell = new TextInfoPrivacyCell(context);
             infoCell.setText(LocaleController.getString(R.string.EditTopicHideInfo));
+            infoCell.setBackground(Theme.getThemedDrawableByKey(getContext(), R.drawable.greydivider_bottom, Theme.key_windowBackgroundGrayShadow, getResourceProvider()));
             emojiContainer.addView(infoCell, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 0, 8 + 50, 0, 0));
         }
         linearLayout.addView(emojiContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));

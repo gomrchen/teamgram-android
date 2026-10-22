@@ -1052,12 +1052,12 @@ public class EditWidgetActivity extends BaseFragment {
     }
 
     @Override
-    public boolean onBackPressed(boolean invoked) {
+    public boolean onBackPressed() {
         if (delegate == null) {
-            if (invoked) finishActivity();
+            finishActivity();
             return false;
         } else {
-            return super.onBackPressed(invoked);
+            return super.onBackPressed();
         }
     }
 

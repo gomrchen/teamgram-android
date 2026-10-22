@@ -79,7 +79,6 @@ public class ContactsController extends BaseController {
     private ArrayList<TLRPC.PrivacyRule> p2pPrivacyRules;
     private ArrayList<TLRPC.PrivacyRule> profilePhotoPrivacyRules;
     private ArrayList<TLRPC.PrivacyRule> bioPrivacyRules;
-    private ArrayList<TLRPC.PrivacyRule> musicPrivacyRules;
     private ArrayList<TLRPC.PrivacyRule> forwardsPrivacyRules;
     private ArrayList<TLRPC.PrivacyRule> phonePrivacyRules;
     private ArrayList<TLRPC.PrivacyRule> addedByPhonePrivacyRules;
@@ -103,9 +102,8 @@ public class ContactsController extends BaseController {
     public final static int PRIVACY_RULES_TYPE_BIRTHDAY = 11;
     public final static int PRIVACY_RULES_TYPE_GIFTS = 12;
     public final static int PRIVACY_RULES_TYPE_NO_PAID_MESSAGES = 13;
-    public final static int PRIVACY_RULES_TYPE_MUSIC = 14;
 
-    public final static int PRIVACY_RULES_TYPE_COUNT = 15;
+    public final static int PRIVACY_RULES_TYPE_COUNT = 14;
 
     private class MyContentObserver extends ContentObserver {
 
@@ -212,7 +210,7 @@ public class ContactsController extends BaseController {
         }
     }
 
-    private static final String[] projectionPhones = {
+    private String[] projectionPhones = {
             ContactsContract.CommonDataKinds.Phone.LOOKUP_KEY,
             ContactsContract.CommonDataKinds.Phone.NUMBER,
             ContactsContract.CommonDataKinds.Phone.TYPE,
@@ -220,7 +218,7 @@ public class ContactsController extends BaseController {
             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
             ContactsContract.RawContacts.ACCOUNT_TYPE,
     };
-    private static final String[] projectionNames = {
+    private String[] projectionNames = {
             ContactsContract.CommonDataKinds.StructuredName.LOOKUP_KEY,
             ContactsContract.CommonDataKinds.StructuredName.GIVEN_NAME,
             ContactsContract.CommonDataKinds.StructuredName.FAMILY_NAME,
@@ -336,7 +334,6 @@ public class ContactsController extends BaseController {
         p2pPrivacyRules = null;
         profilePhotoPrivacyRules = null;
         bioPrivacyRules = null;
-        musicPrivacyRules = null;
         birthdayPrivacyRules = null;
         giftsPrivacyRules = null;
         forwardsPrivacyRules = null;
@@ -376,12 +373,12 @@ public class ContactsController extends BaseController {
     public String getInviteText(int contacts) {
         String link = inviteLink == null ? "https://teamgram.net/dl" : inviteLink;
         if (contacts <= 1) {
-            return LocaleController.formatString(R.string.InviteText2, link);
+            return LocaleController.formatString("InviteText2", R.string.InviteText2, link);
         } else {
             try {
                 return String.format(LocaleController.getPluralString("InviteTextNum", contacts), contacts, link);
             } catch (Exception e) {
-                return LocaleController.formatString(R.string.InviteText2, link);
+                return LocaleController.formatString("InviteText2", R.string.InviteText2, link);
             }
         }
     }
@@ -1983,7 +1980,7 @@ public class ContactsController extends BaseController {
         sortedUsersSectionsArray = sortedSectionsArray;
     }
 
-    public static boolean hasContactsPermission() {
+    private boolean hasContactsPermission() {
         if (Build.VERSION.SDK_INT >= 23) {
             return ApplicationLoader.applicationContext.checkSelfPermission(android.Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED;
         }
@@ -2008,7 +2005,7 @@ public class ContactsController extends BaseController {
         return true;
     }
 
-    public static boolean hasContactsWritePermission() {
+    private boolean hasContactsWritePermission() {
         if (Build.VERSION.SDK_INT >= 23) {
             return ApplicationLoader.applicationContext.checkSelfPermission(Manifest.permission.WRITE_CONTACTS) == PackageManager.PERMISSION_GRANTED;
         }
@@ -2357,15 +2354,11 @@ public class ContactsController extends BaseController {
     }
 
     public void addContact(TLRPC.User user, boolean exception) {
-        addContact(user, null, exception);
-    }
-
-    public void addContact(TLRPC.User user, TLRPC.TL_textWithEntities note, boolean exception) {
         if (user == null) {
             return;
         }
 
-        final TLRPC.TL_contacts_addContact req = new TLRPC.TL_contacts_addContact();
+        TLRPC.TL_contacts_addContact req = new TLRPC.TL_contacts_addContact();
         req.id = getMessagesController().getInputUser(user);
         req.first_name = user.first_name;
         req.last_name = user.last_name;
@@ -2375,10 +2368,6 @@ public class ContactsController extends BaseController {
             req.phone = "";
         } else if (req.phone.length() > 0 && !req.phone.startsWith("+")) {
             req.phone = "+" + req.phone;
-        }
-        if (note != null) {
-            req.flags |= 2;
-            req.note = note;
         }
         getConnectionsManager().sendRequest(req, (response, error) -> {
             if (error != null) {
@@ -2400,18 +2389,18 @@ public class ContactsController extends BaseController {
                     continue;
                 }
                 Utilities.phoneBookQueue.postRunnable(() -> addContactToPhoneBook(u, true));
-                final TLRPC.TL_contact newContact = new TLRPC.TL_contact();
+                TLRPC.TL_contact newContact = new TLRPC.TL_contact();
                 newContact.user_id = u.id;
-                final ArrayList<TLRPC.TL_contact> arrayList = new ArrayList<>();
+                ArrayList<TLRPC.TL_contact> arrayList = new ArrayList<>();
                 arrayList.add(newContact);
                 getMessagesStorage().putContacts(arrayList, false);
 
                 if (!TextUtils.isEmpty(u.phone)) {
-                    final CharSequence name = formatName(u.first_name, u.last_name);
+                    CharSequence name = formatName(u.first_name, u.last_name);
                     getMessagesStorage().applyPhoneBookUpdates(u.phone, "");
-                    final Contact contact = contactsBookSPhones.get(u.phone);
+                    Contact contact = contactsBookSPhones.get(u.phone);
                     if (contact != null) {
-                        final int index = contact.shortPhones.indexOf(u.phone);
+                        int index = contact.shortPhones.indexOf(u.phone);
                         if (index != -1) {
                             contact.phoneDeleted.set(index, 0);
                         }
@@ -2697,9 +2686,6 @@ public class ContactsController extends BaseController {
                 case PRIVACY_RULES_TYPE_BIO:
                     req.key = new TLRPC.TL_inputPrivacyKeyAbout();
                     break;
-                case PRIVACY_RULES_TYPE_MUSIC:
-                    req.key = new TLRPC.TL_inputPrivacyKeySavedMusic();
-                    break;
                 case PRIVACY_RULES_TYPE_FORWARDS:
                     req.key = new TLRPC.TL_inputPrivacyKeyForwards();
                     break;
@@ -2749,9 +2735,6 @@ public class ContactsController extends BaseController {
                             break;
                         case PRIVACY_RULES_TYPE_BIO:
                             bioPrivacyRules = rules.rules;
-                            break;
-                        case PRIVACY_RULES_TYPE_MUSIC:
-                            musicPrivacyRules = rules.rules;
                             break;
                         case PRIVACY_RULES_TYPE_BIRTHDAY:
                             birthdayPrivacyRules = rules.rules;
@@ -2824,8 +2807,6 @@ public class ContactsController extends BaseController {
                 return profilePhotoPrivacyRules;
             case PRIVACY_RULES_TYPE_BIO:
                 return bioPrivacyRules;
-            case PRIVACY_RULES_TYPE_MUSIC:
-                return musicPrivacyRules;
             case PRIVACY_RULES_TYPE_BIRTHDAY:
                 return birthdayPrivacyRules;
             case PRIVACY_RULES_TYPE_GIFTS:
@@ -2863,9 +2844,6 @@ public class ContactsController extends BaseController {
                 break;
             case PRIVACY_RULES_TYPE_BIO:
                 bioPrivacyRules = rules;
-                break;
-            case PRIVACY_RULES_TYPE_MUSIC:
-                musicPrivacyRules = rules;
                 break;
             case PRIVACY_RULES_TYPE_BIRTHDAY:
                 birthdayPrivacyRules = rules;

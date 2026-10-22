@@ -60,10 +60,6 @@ public class CellFlickerDrawable {
         paintOutline.setStrokeWidth(AndroidUtilities.dp(2));
     }
 
-    public void setStrokeWidth(float width) {
-        paintOutline.setStrokeWidth(width);
-    }
-
     public void setColors(int color) {
         setColors(color, 64, 204);
     }

@@ -1,6 +1,9 @@
 package org.telegram.tgnet;
 
+import android.icu.util.Output;
+
 import org.telegram.messenger.Utilities;
+import org.telegram.ui.Components.Paint.Input;
 
 import java.util.ArrayList;
 
@@ -21,7 +24,9 @@ public class Vector<T extends TLObject> extends TLObject {
         TLDeserializer<T> deserializer
     ) {
         if (constructor != Vector.constructor) {
-            TLParseException.doThrowOrLog(stream, "Vector", constructor, exception);
+            if (exception) {
+                throw new RuntimeException(String.format("can't parse magic %x in Vector", constructor));
+            }
             return null;
         }
 
@@ -74,7 +79,9 @@ public class Vector<T extends TLObject> extends TLObject {
 
     public static Vector<Int> TLDeserializeInt(InputSerializedData stream, int constructor, boolean exception) {
         if (constructor != Vector.constructor) {
-            TLParseException.doThrowOrLog(stream, "StarGift", constructor, exception);
+            if (exception) {
+                throw new RuntimeException(String.format("can't parse magic %x in StarGift", constructor));
+            }
             return null;
         }
 
@@ -118,7 +125,9 @@ public class Vector<T extends TLObject> extends TLObject {
 
     public static Vector<Int> TLDeserializeLong(InputSerializedData stream, int constructor, boolean exception) {
         if (constructor != Vector.constructor) {
-            TLParseException.doThrowOrLog(stream, "Vector", constructor, exception);
+            if (exception) {
+                throw new RuntimeException(String.format("can't parse magic %x in StarGift", constructor));
+            }
             return null;
         }
 
@@ -168,7 +177,9 @@ public class Vector<T extends TLObject> extends TLObject {
     public static <T> ArrayList<T> deserialize(InputSerializedData stream, Utilities.CallbackReturn<Boolean, T> read, boolean exception) {
         final int magic = stream.readInt32(exception);
         if (magic != Vector.constructor) {
-            TLParseException.doThrowOrLog(stream, "Vector", magic, exception);
+            if (exception) {
+                throw new RuntimeException(String.format("can't parse magic %x in Vector", magic));
+            }
             return new ArrayList<>();
         }
         final int size = stream.readInt32(exception);
@@ -187,13 +198,12 @@ public class Vector<T extends TLObject> extends TLObject {
     public static ArrayList<java.lang.String> deserializeString(InputSerializedData stream, boolean exception) {
         return deserialize(stream, stream::readString, exception);
     }
-    public static ArrayList<byte[]> deserializeByteArray(InputSerializedData stream, boolean exception) {
-        return deserialize(stream, stream::readByteArray, exception);
-    }
     public static <T extends TLObject> ArrayList<T> deserialize(InputSerializedData stream, TLDeserializer<T> deserializer, boolean exception) {
         final int magic = stream.readInt32(exception);
         if (magic != Vector.constructor) {
-            TLParseException.doThrowOrLog(stream, "Vector", magic, exception);
+            if (exception) {
+                throw new RuntimeException(String.format("can't parse magic %x in Vector", magic));
+            }
             return new ArrayList<>();
         }
 

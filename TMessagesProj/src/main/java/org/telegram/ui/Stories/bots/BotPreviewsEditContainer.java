@@ -70,7 +70,6 @@ import org.telegram.ui.Components.StickerEmptyView;
 import org.telegram.ui.Components.TranslateAlert2;
 import org.telegram.ui.Components.UItem;
 import org.telegram.ui.Components.UniversalAdapter;
-import org.telegram.ui.Components.UniversalRecyclerView;
 import org.telegram.ui.Components.ViewPagerFixed;
 import org.telegram.ui.ProfileActivity;
 import org.telegram.ui.Stories.StoriesController;
@@ -196,7 +195,7 @@ public class BotPreviewsEditContainer extends FrameLayout implements Notificatio
             }
             private String lastLang;
             @Override
-            public void onTabAnimationUpdate(boolean manual) {
+            protected void onTabAnimationUpdate(boolean manual) {
                 String lang = getCurrentLang();
                 if (!TextUtils.equals(lastLang, lang)) {
                     lastLang = lang;
@@ -617,7 +616,7 @@ public class BotPreviewsEditContainer extends FrameLayout implements Notificatio
         }
         chatAttachAlert.setDelegate(new ChatAttachAlert.ChatAttachViewDelegate() {
             @Override
-            public void didPressedButton(int button, boolean arg, boolean notify, int scheduleDate, int scheduleRepeatPeriod, long effectId, boolean invertMedia, boolean forceDocument, long payStars) {
+            public void didPressedButton(int button, boolean arg, boolean notify, int scheduleDate, long effectId, boolean invertMedia, boolean forceDocument, long payStars) {
                 if (!chatAttachAlert.getPhotoLayout().getSelectedPhotos().isEmpty()) {
                     HashMap<Object, Object> selectedPhotos = chatAttachAlert.getPhotoLayout().getSelectedPhotos();
                     ArrayList<Object> selectedPhotosOrder = chatAttachAlert.getPhotoLayout().getSelectedPhotosOrder();
@@ -867,7 +866,6 @@ public class BotPreviewsEditContainer extends FrameLayout implements Notificatio
                     if (view instanceof SharedPhotoVideoCell2) {
                         SharedPhotoVideoCell2 cell = (SharedPhotoVideoCell2) view;
                         final int position = listView.getChildAdapterPosition(cell), spanCount = layoutManager.getSpanCount();
-                        cell.isTop = position < spanCount;
                         cell.isFirst = position % spanCount == 0;
                         cell.isLast = position % spanCount == spanCount - 1;
                         outRect.left = 0;
@@ -939,7 +937,6 @@ public class BotPreviewsEditContainer extends FrameLayout implements Notificatio
                     if (view instanceof SharedPhotoVideoCell2) {
                         SharedPhotoVideoCell2 cell = (SharedPhotoVideoCell2) view;
                         final int position = supportingListView.getChildAdapterPosition(cell), spanCount = supportingLayoutManager.getSpanCount();
-                        cell.isTop = position < spanCount;
                         cell.isFirst = position % spanCount == 0;
                         cell.isLast = position % spanCount == spanCount - 1;
                         outRect.left = 0;
@@ -1977,11 +1974,11 @@ public class BotPreviewsEditContainer extends FrameLayout implements Notificatio
             public static class Factory extends UItem.UItemFactory<LanguageView> {
                 static { setup(new Factory()); }
                 @Override
-                public LanguageView createView(Context context, RecyclerListView listView, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
+                public LanguageView createView(Context context, int currentAccount, int classGuid, Theme.ResourcesProvider resourcesProvider) {
                     return new LanguageView(context);
                 }
                 @Override
-                public void bindView(View view, UItem item, boolean divider, UniversalAdapter adapter, UniversalRecyclerView listView) {
+                public void bindView(View view, UItem item, boolean divider) {
                     ((LanguageView) view).set((TranslateController.Language) item.object, divider);
                 }
                 public static UItem of(TranslateController.Language l) {

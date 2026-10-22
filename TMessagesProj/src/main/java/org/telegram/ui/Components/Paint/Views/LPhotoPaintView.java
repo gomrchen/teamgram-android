@@ -101,7 +101,6 @@ import org.telegram.ui.Components.Size;
 import org.telegram.ui.Components.SizeNotifierFrameLayout;
 import org.telegram.ui.Components.SizeNotifierFrameLayoutPhoto;
 import org.telegram.ui.Components.ThanosEffect;
-import org.telegram.ui.Components.blur3.drawable.BlurredBackgroundDrawable;
 import org.telegram.ui.PhotoViewer;
 import org.telegram.ui.Stories.recorder.EmojiBottomSheet;
 
@@ -672,23 +671,14 @@ public class LPhotoPaintView extends SizeNotifierFrameLayoutPhoto implements IPh
                 super.onDraw(canvas);
 
                 ViewGroup barView = getBarView();
-                AndroidUtilities.rectTmp2.set(
+                AndroidUtilities.rectTmp.set(
                         AndroidUtilities.lerp(barView.getLeft(), colorsListView.getLeft(), toolsTransformProgress),
                         AndroidUtilities.lerp(barView.getTop(), colorsListView.getTop(), toolsTransformProgress),
                         AndroidUtilities.lerp(barView.getRight(), colorsListView.getRight(), toolsTransformProgress),
                         AndroidUtilities.lerp(barView.getBottom(), colorsListView.getBottom(), toolsTransformProgress)
                 );
-                AndroidUtilities.rectTmp.set(AndroidUtilities.rectTmp2);
-
                 final float radius = AndroidUtilities.lerp(dp(32), dp(24), toolsTransformProgress);
-                if (blurredBackgroundDrawableForTools != null) {
-                    AndroidUtilities.rectTmp2.inset(-dp(4), -dp(4));
-                    blurredBackgroundDrawableForTools.setRadius(radius);
-                    blurredBackgroundDrawableForTools.setBounds(AndroidUtilities.rectTmp2);
-                    blurredBackgroundDrawableForTools.draw(canvas);
-                } else {
-                    canvas.drawRoundRect(AndroidUtilities.rectTmp, radius, radius, toolsPaint);
-                }
+                canvas.drawRoundRect(AndroidUtilities.rectTmp, radius, radius, toolsPaint);
 
                 if (barView != null && barView.getChildCount() >= 1 && toolsTransformProgress != 1f) {
                     canvas.save();
@@ -1508,7 +1498,7 @@ public class LPhotoPaintView extends SizeNotifierFrameLayoutPhoto implements IPh
             }
 
             @Override
-            public void didPressedButton(int button, boolean arg, boolean notify, int scheduleDate, int scheduleRepeatPeriod, long effectId, boolean invertMedia, boolean forceDocument, long payStars) {
+            public void didPressedButton(int button, boolean arg, boolean notify, int scheduleDate, long effectId, boolean invertMedia, boolean forceDocument, long payStars) {
                 try {
                     HashMap<Object, Object> photos = chatAttachAlert.getPhotoLayout().getSelectedPhotos();
                     if (!photos.isEmpty()) {
@@ -1860,12 +1850,6 @@ public class LPhotoPaintView extends SizeNotifierFrameLayoutPhoto implements IPh
     @Override
     public void updateColors() {
         toolsPaint.setColor(0xff191919);
-    }
-
-    private BlurredBackgroundDrawable blurredBackgroundDrawableForTools;
-
-    public void setBlurredBackgroundDrawableForTools(BlurredBackgroundDrawable d) {
-        blurredBackgroundDrawableForTools = d.setPadding(dp(4));
     }
 
     @Override

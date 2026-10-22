@@ -157,9 +157,8 @@ public class WebRtcAudioTrack {
       final int sampleRate = audioTrack.getSampleRate();
 
       targetTimeNs = System.nanoTime();
-      boolean blocking = false;
 
-      while (keepAlive && audioTrack != null) {
+      while (keepAlive) {
         // Get 10ms of PCM data from the native WebRTC client. Audio data is
         // written into the common ByteBuffer using the address that was
         // cached at construction.
@@ -178,7 +177,7 @@ public class WebRtcAudioTrack {
           byteBuffer.put(emptyBytes);
           byteBuffer.position(0);
         }
-        int bytesWritten = writeBytes(audioTrack, byteBuffer, sizeInBytes, blocking);
+        int bytesWritten = writeBytes(audioTrack, byteBuffer, sizeInBytes);
         if (bytesWritten != sizeInBytes) {
           Logging.e(TAG, "AudioTrack.write played invalid number of bytes: " + bytesWritten);
           // If a write() returns a negative value, an error has occurred.
@@ -192,7 +191,14 @@ public class WebRtcAudioTrack {
         // increased at each call to AudioTrack.write(). If we don't do this,
         // next call to AudioTrack.write() will fail.
         byteBuffer.rewind();
-        blocking = !blocking;
+
+        // Update the number of written frames
+        writtenFrames += bytesWritten / bytesPerFrame;
+
+        // Calculate the playback delay
+        long playbackHeadPosition = audioTrack.getPlaybackHeadPosition();
+        long delayInFrames = writtenFrames - playbackHeadPosition;
+        long delayInMs = (delayInFrames * 1000) / sampleRate;
 
         // The byte buffer must be rewinded since byteBuffer.position() is
         // increased at each call to AudioTrack.write(). If we don't do this,
@@ -213,6 +219,7 @@ public class WebRtcAudioTrack {
           // Missed deadline
           targetTimeNs = System.nanoTime(); // Reset target time to current time
         }
+
       }
 
       // Stops playing the audio data. Since the instance was created in
@@ -229,10 +236,9 @@ public class WebRtcAudioTrack {
       }
     }
 
-    private int writeBytes(AudioTrack audioTrack, ByteBuffer byteBuffer, int sizeInBytes, boolean blocking) {
-      if (audioTrack == null) return 0;
+    private int writeBytes(AudioTrack audioTrack, ByteBuffer byteBuffer, int sizeInBytes) {
       if (Build.VERSION.SDK_INT >= 21) {
-        return audioTrack.write(byteBuffer, sizeInBytes, blocking ? AudioTrack.WRITE_BLOCKING : AudioTrack.WRITE_NON_BLOCKING);
+        return audioTrack.write(byteBuffer, sizeInBytes, AudioTrack.WRITE_BLOCKING);
       } else {
         return audioTrack.write(byteBuffer.array(), byteBuffer.arrayOffset(), sizeInBytes);
       }
@@ -545,15 +551,14 @@ public class WebRtcAudioTrack {
 
   // Releases the native AudioTrack resources.
   private void releaseAudioResources() {
-    Logging.e(TAG, "releaseAudioResources", new Exception());
+    Logging.d(TAG, "releaseAudioResources");
     if (audioTrack != null) {
-      AudioTrack track = audioTrack;
-      audioTrack = null;
       try {
-        track.release();
+        audioTrack.release();
       } catch (Throwable e) {
         FileLog.e(e);
       }
+      audioTrack = null;
     }
   }
 

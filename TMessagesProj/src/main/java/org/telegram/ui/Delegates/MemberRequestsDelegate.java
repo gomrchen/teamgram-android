@@ -264,9 +264,9 @@ public class MemberRequestsDelegate implements MemberRequestCell.OnClickListener
         }
     }
 
-    public boolean onBackPressed(boolean invoked) {
+    public boolean onBackPressed() {
         if (previewDialog != null) {
-            if (invoked) previewDialog.dismiss();
+            previewDialog.dismiss();
             return false;
         } else {
             return true;

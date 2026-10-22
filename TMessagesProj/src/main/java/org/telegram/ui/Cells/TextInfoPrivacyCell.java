@@ -46,11 +46,11 @@ public class TextInfoPrivacyCell extends FrameLayout {
     private final Theme.ResourcesProvider resourcesProvider;
 
     public TextInfoPrivacyCell(Context context) {
-        this(context, 24, null);
+        this(context, 21, null);
     }
 
     public TextInfoPrivacyCell(Context context, Theme.ResourcesProvider resourcesProvider) {
-        this(context, 24, resourcesProvider);
+        this(context, 21, resourcesProvider);
     }
 
     public TextInfoPrivacyCell(Context context, int padding) {
@@ -150,10 +150,6 @@ public class TextInfoPrivacyCell extends FrameLayout {
 
     public void setFixedSize(int size) {
         fixedSize = size;
-    }
-
-    public int getFixedSize() {
-        return fixedSize;
     }
 
     public CharSequence getText() {

@@ -13,7 +13,6 @@ public class BagRandomizer<T> {
     private final List<T> shuffledBag;
     private int currentIndex;
     private final Random random;
-    private boolean reshuffleIfEnd = true;
 
     private T next;
 
@@ -32,28 +31,15 @@ public class BagRandomizer<T> {
         if (this.bag.isEmpty()) return null;
         T result = next;
         if (currentIndex >= shuffledBag.size()) {
-            if (reshuffleIfEnd) {
-                reshuffle();
-            } else {
-                currentIndex = 0;
-            }
+            reshuffle();
         }
         next = shuffledBag.get(currentIndex++);
         return result;
     }
 
-    public void setReshuffleIfEnd(boolean reshuffleIfEnd) {
-        this.reshuffleIfEnd = reshuffleIfEnd;
-    }
-
     @Nullable
     public T getNext() {
         return next;
-    }
-
-    public void reset() {
-        currentIndex = 0;
-        next();
     }
 
     private void reshuffle() {

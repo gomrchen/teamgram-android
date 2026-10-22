@@ -21,7 +21,6 @@ import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
 
-import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
 import org.telegram.messenger.AndroidUtilities;
@@ -147,7 +146,7 @@ public class TimerDrawable extends Drawable {
         return timerDrawable;
     }
     @Override
-    public void draw(@NonNull Canvas canvas) {
+    public void draw(Canvas canvas) {
         int width = getIntrinsicWidth();
         int height = getIntrinsicHeight();
 
@@ -188,7 +187,6 @@ public class TimerDrawable extends Drawable {
                 if (AndroidUtilities.density == 3) {
                     xOffxet = -1;
                 }
-                canvas.save();
                 if (isDialog) {
                     canvas.translate((float) ((getBounds().width() / 2 - Math.ceil(timeWidth / 2)) + xOffxet), (getBounds().height() - timeHeight) / 2f);
                     timeLayout.draw(canvas);
@@ -196,7 +194,6 @@ public class TimerDrawable extends Drawable {
                     canvas.translate((int) (width / 2 - Math.ceil(timeWidth / 2)) + xOffxet, (height - timeHeight) / 2f);
                     timeLayout.draw(canvas);
                 }
-                canvas.restore();
 
             }
         }

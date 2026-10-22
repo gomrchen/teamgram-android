@@ -9,7 +9,6 @@
 package org.telegram.ui.Components;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
-import static org.telegram.messenger.AndroidUtilities.lerp;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
@@ -58,7 +57,7 @@ import org.telegram.ui.ChatBackgroundDrawable;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colorable {
+public class SizeNotifierFrameLayout extends FrameLayout {
 
     public boolean DRAW_USING_RENDERNODE() {
         return Build.VERSION.SDK_INT >= 31 && SharedConfig.useNewBlur;
@@ -89,7 +88,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     private boolean animationInProgress;
     private boolean skipBackgroundDrawing;
     SnowflakesEffect snowflakesEffect;
-    public View backgroundView;
+    protected View backgroundView;
     boolean attached;
 
 
@@ -188,12 +187,8 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
                 if (attached && backgroundDrawable instanceof ChatBackgroundDrawable) {
                     ((ChatBackgroundDrawable) backgroundDrawable).onAttachedToWindow(this);
                 }
-                if (attached && backgroundDrawable instanceof MotionBackgroundDrawable) {
-                    ((MotionBackgroundDrawable) backgroundDrawable).onAttachedToWindow();
-                }
                 backgroundMotion = newMotion;
                 themeAnimationValue = 0f;
-                onUpdateBackgroundDrawable(backgroundDrawable);
                 checkMotion();
             } else if (backgroundMotion != newMotion) {
                 backgroundMotion = newMotion;
@@ -335,9 +330,6 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
                     if (attached && oldBackgroundDrawable instanceof ChatBackgroundDrawable) {
                         ((ChatBackgroundDrawable) oldBackgroundDrawable).onDetachedFromWindow(backgroundView);
                     }
-                    if (attached && oldBackgroundDrawable instanceof MotionBackgroundDrawable) {
-                        ((MotionBackgroundDrawable) oldBackgroundDrawable).onDetachedFromWindow();
-                    }
                     oldBackgroundDrawable = null;
                     oldBackgroundMotion = false;
                     checkMotion();
@@ -348,22 +340,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
                 backgroundView.invalidate();
             }
         }
-
-        @Override
-        public void invalidate() {
-            super.invalidate();
-            onBackgroundViewInvalidate();
-        }
     }
-
-    protected void onBackgroundViewInvalidate() {
-
-    }
-
-    public void onUpdateBackgroundDrawable(Drawable drawable) {
-
-    }
-
 
     public void setBackgroundImage(Drawable bitmap, boolean motion) {
         if (backgroundDrawable == bitmap) {
@@ -384,13 +361,6 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         if (attached && backgroundDrawable instanceof ChatBackgroundDrawable) {
             ((ChatBackgroundDrawable) backgroundDrawable).onAttachedToWindow(backgroundView);
         }
-        if (attached && backgroundDrawable instanceof MotionBackgroundDrawable) {
-            ((MotionBackgroundDrawable) backgroundDrawable).onDetachedFromWindow();
-        }
-        if (attached && backgroundDrawable instanceof MotionBackgroundDrawable) {
-            ((MotionBackgroundDrawable) backgroundDrawable).onAttachedToWindow();
-        }
-        onUpdateBackgroundDrawable(backgroundDrawable);
         checkMotion();
         backgroundView.invalidate();
         checkLayerType();
@@ -584,7 +554,6 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         if (backgroundView != null && Theme.canStartHolidayAnimation() && LiteMode.isEnabled(LiteMode.FLAG_CHAT_BACKGROUND)) {
             if (snowflakesEffect == null) {
                 snowflakesEffect = new SnowflakesEffect(1);
-                snowflakesEffect.setForcedColor(0xFFFFFFFF);
             }
             snowflakesEffect.onDraw(backgroundView, canvas);
         }
@@ -874,14 +843,8 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         if (backgroundDrawable instanceof ChatBackgroundDrawable) {
             ((ChatBackgroundDrawable) backgroundDrawable).onAttachedToWindow(backgroundView);
         }
-        if (backgroundDrawable instanceof MotionBackgroundDrawable) {
-            ((MotionBackgroundDrawable) backgroundDrawable).onAttachedToWindow();
-        }
         if (oldBackgroundDrawable instanceof ChatBackgroundDrawable) {
             ((ChatBackgroundDrawable) oldBackgroundDrawable).onAttachedToWindow(backgroundView);
-        }
-        if (oldBackgroundDrawable instanceof MotionBackgroundDrawable) {
-            ((MotionBackgroundDrawable) oldBackgroundDrawable).onAttachedToWindow();
         }
     }
 
@@ -914,12 +877,6 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         if (oldBackgroundDrawable instanceof ChatBackgroundDrawable) {
             ((ChatBackgroundDrawable) oldBackgroundDrawable).onDetachedFromWindow(backgroundView);
         }
-        if (backgroundDrawable instanceof MotionBackgroundDrawable) {
-            ((MotionBackgroundDrawable) backgroundDrawable).onDetachedFromWindow();
-        }
-        if (oldBackgroundDrawable instanceof MotionBackgroundDrawable) {
-            ((MotionBackgroundDrawable) oldBackgroundDrawable).onDetachedFromWindow();
-        }
     }
 
     public boolean blurWasDrawn() {
@@ -931,6 +888,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     private RenderNode[] blurNodes;
     private boolean[] blurNodeInvalidatedThisFrame = new boolean[2];
     private boolean[] blurNodeInvalidated = new boolean[2];
+    private NoClipCanvas noClipCanvas;
     public static boolean drawingBlur;
 
     private final ArrayList<IViewWithInvalidateCallback> lastViews = new ArrayList<>();
@@ -957,7 +915,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         return false;
     }
 
-    public static float getRenderNodeScale() {
+    private float getRenderNodeScale() {
         switch (SharedConfig.getDevicePerformanceClass()) {
             case SharedConfig.PERFORMANCE_CLASS_HIGH:
                 return AndroidUtilities.density;
@@ -969,7 +927,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         }
     }
 
-    public static float getBlurRadius() {
+    private float getBlurRadius() {
         switch (SharedConfig.getDevicePerformanceClass()) {
             case SharedConfig.PERFORMANCE_CLASS_HIGH:
                 return 60;
@@ -981,21 +939,8 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         }
     }
 
-    protected float getBlurRadiusInternal() {
-        return getBlurRadius();
-    }
-
     public void drawBlurRect(Canvas canvas, float y, Rect rectTmp, Paint blurScrimPaint, boolean top) {
         int blurAlpha = Color.alpha(Theme.getColor(DRAW_USING_RENDERNODE() && SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_HIGH ? Theme.key_chat_BlurAlpha : Theme.key_chat_BlurAlphaSlow, getResourceProvider()));
-        drawBlurRect(canvas, y, rectTmp, blurScrimPaint, top, blurAlpha);
-    }
-
-    public void drawBlurRect(Canvas canvas, float y, Rect rectTmp, Paint blurScrimPaint, boolean top, float alpha) {
-        int blurAlpha = Color.alpha(Theme.getColor(DRAW_USING_RENDERNODE() && SharedConfig.getDevicePerformanceClass() == SharedConfig.PERFORMANCE_CLASS_HIGH ? Theme.key_chat_BlurAlpha : Theme.key_chat_BlurAlphaSlow, getResourceProvider()));
-        drawBlurRect(canvas, y, rectTmp, blurScrimPaint, top, lerp(0xFF, blurAlpha, alpha));
-    }
-
-    public void drawBlurRect(Canvas canvas, float y, Rect rectTmp, Paint blurScrimPaint, boolean top, int blurAlpha) {
         if (!SharedConfig.chatBlurEnabled()) {
             canvas.drawRect(rectTmp, blurScrimPaint);
             return;
@@ -1020,7 +965,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
                     ColorMatrix colorMatrix = new ColorMatrix();
                     colorMatrix.setSaturation(2f);
                     blurNodes[a].setRenderEffect(RenderEffect.createChainEffect(
-                            RenderEffect.createBlurEffect(getBlurRadiusInternal(), getBlurRadiusInternal(), Shader.TileMode.DECAL),
+                            RenderEffect.createBlurEffect(getBlurRadius(), getBlurRadius(), Shader.TileMode.DECAL),
                             RenderEffect.createColorFilterEffect(new ColorMatrixColorFilter(colorMatrix))
                     ));
                 }
@@ -1250,8 +1195,4 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         }
     }
 
-    @Override
-    public void updateColors() {
-
-    }
 }

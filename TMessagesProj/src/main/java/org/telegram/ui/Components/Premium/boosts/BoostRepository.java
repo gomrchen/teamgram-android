@@ -33,6 +33,7 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.bots.BotWebViewSheet;
 import org.telegram.ui.LaunchActivity;
 import org.telegram.ui.PaymentFormActivity;
+import org.telegram.ui.Stars.StarsController;
 
 import java.text.Collator;
 import java.util.ArrayList;
@@ -162,6 +163,18 @@ public class BoostRepository {
         int requestId = connection.sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
             if (error != null) {
                 onError.run(error);
+                return;
+            }
+            if (response instanceof TLRPC.TL_payments_paymentFormStars) {
+                StarsController.getInstance(UserConfig.selectedAccount).presentInvoicePaymentFormResponse(invoice, response, (success, errorText) -> {
+                    if (success) {
+                        onSuccess.run(null);
+                    } else {
+                        TLRPC.TL_error err = new TLRPC.TL_error();
+                        err.text = errorText != null ? errorText : "FAILED_SEND_STARS";
+                        onError.run(err);
+                    }
+                });
                 return;
             }
             PaymentFormActivity paymentFormActivity = null;

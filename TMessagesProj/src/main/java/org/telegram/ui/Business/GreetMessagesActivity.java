@@ -52,6 +52,10 @@ public class GreetMessagesActivity extends BaseFragment implements NotificationC
         }
     }
 
+    public static void preloadSticker(int currentAccount) {
+
+    }
+
     @Override
     public View createView(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
@@ -61,7 +65,7 @@ public class GreetMessagesActivity extends BaseFragment implements NotificationC
             @Override
             public void onItemClick(int id) {
                 if (id == -1) {
-                    if (onBackPressed(true)) {
+                    if (onBackPressed()) {
                         finishFragment();
                     }
                 } else if (id == done_button) {
@@ -87,11 +91,7 @@ public class GreetMessagesActivity extends BaseFragment implements NotificationC
         recipientsHelper.setValue(currentValue == null ? null : currentValue.recipients);
 
         listView = new UniversalRecyclerView(this, this::fillItems, this::onClick, null);
-        listView.setSections();
-        listView.adapter.setApplyBackground(false);
         contentView.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
-        actionBar.setAdaptiveBackground(listView);
-
         setValue();
 
         return fragmentView = contentView;
@@ -213,23 +213,21 @@ public class GreetMessagesActivity extends BaseFragment implements NotificationC
     }
 
     @Override
-    public boolean onBackPressed(boolean invoked) {
+    public boolean onBackPressed() {
         if (hasChanges()) {
-            if (invoked) {
-                if (!enabled) {
-                    processDone();
-                    return false;
-                }
-                AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
-                builder.setTitle(LocaleController.getString(R.string.UnsavedChanges));
-                builder.setMessage(LocaleController.getString(R.string.BusinessGreetUnsavedChanges));
-                builder.setPositiveButton(LocaleController.getString(R.string.ApplyTheme), (dialogInterface, i) -> processDone());
-                builder.setNegativeButton(LocaleController.getString(R.string.PassportDiscard), (dialog, which) -> finishFragment());
-                showDialog(builder.create());
+            if (!enabled) {
+                processDone();
+                return false;
             }
+            AlertDialog.Builder builder = new AlertDialog.Builder(getParentActivity());
+            builder.setTitle(LocaleController.getString(R.string.UnsavedChanges));
+            builder.setMessage(LocaleController.getString(R.string.BusinessGreetUnsavedChanges));
+            builder.setPositiveButton(LocaleController.getString(R.string.ApplyTheme), (dialogInterface, i) -> processDone());
+            builder.setNegativeButton(LocaleController.getString(R.string.PassportDiscard), (dialog, which) -> finishFragment());
+            showDialog(builder.create());
             return false;
         }
-        return super.onBackPressed(invoked);
+        return super.onBackPressed();
     }
 
 
@@ -331,16 +329,5 @@ public class GreetMessagesActivity extends BaseFragment implements NotificationC
         getNotificationCenter().removeObserver(this, NotificationCenter.quickRepliesUpdated);
         getNotificationCenter().removeObserver(this, NotificationCenter.userInfoDidLoad);
         super.onFragmentDestroy();
-    }
-
-    @Override
-    public boolean isSupportEdgeToEdge() {
-        return true;
-    }
-
-    @Override
-    public void onInsets(int left, int top, int right, int bottom) {
-        listView.setPadding(0, 0, 0, bottom);
-        listView.setClipToPadding(false);
     }
 }
